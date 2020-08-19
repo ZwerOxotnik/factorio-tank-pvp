@@ -8,11 +8,11 @@
 업데이트를 위해선 github에 방문하십시오.  
 https://github.com/x2605/factorio-tank-pvp
 
-Vanilla scenario made for base 1.0. No mod required.  
-Using headless server for hosting is recommended.  
+---
+
+Vanilla scenario made for base 1.0. No mod required. Using headless server for hosting is recommended.  
 Periodic saving is unnecessary. No need to manage players.  
 It's good to leave it running without care. It's okay to leave it running it without care.  
-
 You can host this from your client but it's unfair if you join in fighting due to ping issues.  
 
 Visit github for updates.  
