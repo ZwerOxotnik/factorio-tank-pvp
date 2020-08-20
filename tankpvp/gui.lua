@@ -515,7 +515,7 @@ Gui.update_team_stat = function()
       tspec_ing_frame.ffaplay_count.caption = {"ffa-count", ffa_players_cnt}
       twrap.t1stat.rf.remains.caption = t1cnt
       twrap.t2stat.rf.remains.caption = t2cnt
-      force_name = Game_var.get_player_team_force(player.name)
+      force_name = Util.get_player_team_force(player.name)
       if force_name == Const.team_defines[1].force then
         twrap.t1stat.message.caption = being_captured_string[1]
         twrap.t2stat.message.caption = capturing_string[2]

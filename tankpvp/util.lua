@@ -2,6 +2,29 @@ Util = {}
 
 local Const = require('tankpvp.const')
 
+--Error
+--사용법 :
+--  리턴값들... = Util.p({기본값들...}, 함수명, 인수들...)  --리턴값이 여러개
+--  리턴값 = Util.p({기본값}, 함수명, 인수들...)  --리턴값이 한개
+--  Util.p({}, 함수명, 인수들...)  --리턴값이 없으면
+local error_wrapper = function(defaults_table, done, ...)
+  if done == true then
+    return ...
+  else
+    local arg = {...}
+    for _, player in pairs(game.players) do
+      if player.admin and player.connected then
+        player.print{"",string.format("%.3f",game.tick/60),' ' ,arg[1]}
+      end
+    end
+    localised_print{"",string.format("%.3f",game.tick/60),' ',arg[1]}
+    return unpack(defaults_table)
+  end
+end
+Util.p = function(defaults_table, f, ...)
+  return error_wrapper(defaults_table, pcall(f, ...))
+end
+
 --String
 Util.color2str = function(color)
   local r,g,b,a = 0,0,0,1
@@ -13,7 +36,7 @@ Util.color2str = function(color)
   elseif color[3] then b = color[3] end
   if color.a then a = color.a
   elseif color[4] then a = color[4] end
-  return string.format("%.3f,%.3f,%.3f,%.3f",r,g,b,a)
+  return string.format("%.4f,%.4f,%.4f,%.4f",r,g,b,a)
 end
 
 --Gui --spectator로 전환시 닫히는 gui는 on_gui_closed를 발생시키지 않는 문제
@@ -106,6 +129,18 @@ Util.add_label_w_style = function(parent, caption, style, styles)
   end
 end
 
+--Force
+--플레이어가 팀명단에 있으면 팀세력이름을 출력
+Util.get_player_team_force = function(playername)
+  for i = 1, 2 do
+    if global.tankpvp_.team_game_players[i][playername] then
+      return Const.team_defines[i].force
+    end
+  end
+  return 'player'
+end
+
+
 --Table
 Util.sort_key_table = function(ktable, orderkey, ascending)
   local copy = {}
@@ -149,6 +184,7 @@ local end_reason = {
   ['eliminated'] = {"reason-eliminated"},
   ['captured'] = {"reason-captured"},
   ['timeup'] = {"reason-timeup"},
+  ['forceclose'] = {"reason-forceclose"},
 }
 local survived_string = function(s)
   if s == 1 then return '[color=0,1,0,1]✓[/color]'
@@ -251,23 +287,55 @@ Util.opengui_last_team_stat = function(player)
   end
   for i, v in ipairs(DB.order_capture_stat_won_players) do
     Util.add_label_w_style(table2L, v.key, nil, {font_color = Util.pcolor(v.key), font = 'default-bold'})
-    Util.add_label_w_style(table2L, string.format("%.1g",v.recover), nil, {})
-    Util.add_label_w_style(table2L, string.format("%.1g",v.capture), nil, {})
+    Util.add_label_w_style(table2L, string.format("%.1f",v.recover):gsub("%.?0+$","")..'', nil, {})
+    Util.add_label_w_style(table2L, string.format("%.1f",v.capture):gsub("%.?0+$","")..'', nil, {})
     Util.add_label_w_style(table2L, survived_string(v.survived), nil, {})
   end
   for i, v in ipairs(DB.order_capture_stat_lost_players) do
     Util.add_label_w_style(table2R, survived_string(v.survived), nil, {})
-    Util.add_label_w_style(table2R, string.format("%.1g",v.capture), nil, {})
-    Util.add_label_w_style(table2R, string.format("%.1g",v.recover), nil, {})
+    Util.add_label_w_style(table2R, string.format("%.1f",v.capture):gsub("%.?0+$","")..'', nil, {})
+    Util.add_label_w_style(table2R, string.format("%.1f",v.recover):gsub("%.?0+$","")..'', nil, {})
     Util.add_label_w_style(table2R, v.key, nil, {font_color = Util.pcolor(v.key), font = 'default-bold'})
   end
 end
 
---Force
-Util.copypaste_damage_modifier = function(source,target)
-  for i, ammo in pairs(Const.ammo_categories) do
-    target.set_ammo_damage_modifier(ammo,source.get_ammo_damage_modifier(ammo))
+--Item
+Util.insert_spider_remote = function(player, spider)
+  if not player then return end
+  local inv = game.create_inventory(1)
+  inv.insert{name = 'spidertron-remote', count = 1}
+  local remote = inv.find_item_stack('spidertron-remote')
+  if spider and spider.valid then
+    if spider.name == 'spidertron' then
+      remote.connected_entity = spider
+    end
   end
+  local can_insert = player.can_insert(remote)
+  if can_insert then player.insert(remote) end
+  inv.destroy()
+  return can_insert
+end
+
+--Force
+Util.copypaste_weapon_modifiers = function(source, target)
+  if type(source) == 'string' then source = game.forces[source] end
+  if type(target) == 'string' then target = game.forces[target] end
+  if not source then return end
+  if not target then return end
+  for i, ammo in pairs(Const.ammo_categories) do
+    target.set_ammo_damage_modifier(ammo, source.get_ammo_damage_modifier(ammo))
+    target.set_gun_speed_modifier(ammo, source.get_gun_speed_modifier(ammo))
+  end
+end
+
+--Switch
+Util.reenable_minimap = function(player)
+  player.minimap_enabled = true
+  player.game_view_settings.show_minimap = true
+end
+Util.disable_minimap = function(player)
+  player.minimap_enabled = false
+  player.game_view_settings.show_minimap = false
 end
 
 return Util

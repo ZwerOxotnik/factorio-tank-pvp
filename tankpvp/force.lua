@@ -9,10 +9,12 @@ Force.create_team_init = function()
   if not game.forces[4] then
     game.create_force(T1)
     Block_recipes.disable_tech_of_force(T1)
+    Util.copypaste_weapon_modifiers('player', T1)
   end
   if not game.forces[5] then
     game.create_force(T2)
     Block_recipes.disable_tech_of_force(T2)
+    Util.copypaste_weapon_modifiers('player', T2)
   end
   game.forces['player'].set_friend(T1, true)
   game.forces['player'].set_friend(T2, true)
@@ -57,6 +59,7 @@ Force.pick_no_one_connected = function()
   if not game.forces[f] then
     game.create_force(f)
     Block_recipes.disable_tech_of_force(f)
+    Util.copypaste_weapon_modifiers('player', f)
   elseif #game.forces[f].connected_players == 0 then
     for _, player in pairs(game.forces[f].players) do
       --해당 개인 세력의 미접속 플레이어는 기본 세력으로 변경

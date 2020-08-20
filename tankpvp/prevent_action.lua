@@ -1,11 +1,13 @@
 local Prevent_action = {}
 
+local Const = require('tankpvp.const')
+local Util = require('tankpvp.util')
+
 --퍼미션 초기화, 게임 시작 시 1회만 실행
 Prevent_action.permissions_init = require('tankpvp.default_permissions')
 
 --우측상단 미니맵 및 기타UI 감추기
-Prevent_action.change_game_view_settings = function(player_index)
-  local player = game.players[player_index]
+Prevent_action.disable_some_game_view_settings = function(player)
   player.minimap_enabled = false
   player.game_view_settings.show_minimap = false
   player.game_view_settings.show_research_info = false
@@ -91,6 +93,24 @@ Prevent_action.on_player_cursor_stack_changed = function(event)
     then
     --alt+d 같은 단축키 방지
     player.clean_cursor()
+  end
+end
+
+Prevent_action.on_console_command = function(event)
+  if not global.tankpvp_ then return end
+  local DB = global.tankpvp_
+  if event.player_index then
+    local player = game.players[event.player_index]
+    if not player then return end
+    if event.command == 'color' then
+      Util.save_personal_color(player)
+      if player.surface.index ~= 1 and DB.team_game_opened and player.controller_type == defines.controllers.character then
+        local force = Util.get_player_team_force(player.name)
+        if force ~= 'player' then
+          player.color = Const.team_defines_key[force].color
+        end
+      end
+    end
   end
 end
 

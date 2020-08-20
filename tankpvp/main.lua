@@ -8,6 +8,7 @@ local Tank_spawn = require('tankpvp.tank_spawn') --DB
 local Prevent_action = require('tankpvp.prevent_action')
 local Tank_loots = require('tankpvp.tank_loots') --DB
 local Damaging = require('tankpvp.damaging') --DB
+local Balance = require('tankpvp.balance')
 local Chat = require('tankpvp.chat')
 local Force = require('tankpvp.force')
 local Gui = require('tankpvp.gui') --DB
@@ -37,6 +38,7 @@ Main.on_load = function()
   if not DB.initialized then
     Terrain.init()
     Prevent_action.permissions_init()
+    Balance.init()
     DB.initialized = true
   end
 end
@@ -73,7 +75,6 @@ local on_tick = function()
       end
     end
     local percent = (t / (t + f))
-    --game.print{"__1__, __2__", t, t+f}
     if surface.index ~= 1 then --nauvis가 아닌 경우(팀전 맵)
       for _, player in pairs(game.connected_players) do
         Gui.loading_team_chunks(player, percent, LCDB.surface_name)
@@ -162,6 +163,7 @@ local on_tick = function()
             player.print{"inform-team-chat-mode"}
             spawn = Terrain.get_team_spreaded_spawn(i, surface)
             player.teleport(spawn ,surface)
+            Util.reenable_minimap(player)
             PDB.guis.tdm_frame.visible = true
             PDB.guis.tspec_ing_frame.visible = false
             PDB.guis.ffa_frame.visible = false
@@ -263,10 +265,11 @@ local on_player_joined_game = function(event)
   local PDB = DB.players_data[playername]
   local mode = PDB.player_mode
   player.clear_console()
+  Prevent_action.disable_some_game_view_settings(player)
   DB.zoom_world_queue[playername] = nil
   player.spectator = false
   if mode == Const.defines.player_mode.team and player.surface.index ~= 1 then
-    local force = Game_var.get_player_team_force(playername)
+    local force = Util.get_player_team_force(playername)
     if force == 'player' then
       Game_var.remove_character(player.index)
       PDB.player_mode = Const.defines.player_mode.ffa_spectator
@@ -281,6 +284,9 @@ local on_player_joined_game = function(event)
         player.print{"lost_tank_offline_on_team"}
         Game_var.remove_character(playername)
         Game_var.move_to_outofring(playername)
+        Util.disable_minimap(player)
+      else
+        Util.reenable_minimap(player)
       end
       player.force = force
     end
@@ -292,6 +298,7 @@ local on_player_joined_game = function(event)
     or mode == Const.defines.player_mode.team_spectator
     or mode == Const.defines.player_mode.whole_team_spectator
     then
+    Util.disable_minimap(player)
     player.teleport({0,0}, game.surfaces[1])
     player.force = 'player'
     player.tag = ''
@@ -303,7 +310,6 @@ local on_player_joined_game = function(event)
     end
     player.color = Util.get_personal_color(player)
   end
-  Prevent_action.change_game_view_settings(event.player_index)
   Gui.on_player_joined_game(event)
   if DB.stat_last_map_name then
     PDB.guis.stat_view_btn.visible = true
@@ -333,9 +339,12 @@ local on_player_respawned = function(event)
     or mode == Const.defines.player_mode.team_spectator
     or mode == Const.defines.player_mode.whole_team_spectator
     then
+    game.permissions.get_group('ffa_spec').add_player(player)
     Game_var.remove_character(playername)
     if mode == Const.defines.player_mode.team_spectator then
-      player.force = Game_var.get_player_team_force(playername)
+      Util.disable_minimap(player)
+      player.force = Util.get_player_team_force(playername)
+      player.color = Util.get_personal_color(player)
     end
     Game_var.move_to_outofring(playername)
   end
@@ -354,6 +363,8 @@ local on_player_died = function(event)
     local return_slot = Game_var.player_dead_and_is_have_to_return_slot(playername)
     local spawn = {}
     if return_slot then
+      local remains = player.surface.find_entities_filtered{force = player.force}
+      for _, r in pairs(remains) do r.force = 'enemy' end
       Game_var.remember_position_to_mapview(playername)
       Game_var.player_return_ffa_slot(playername)
       local new_player_name = Game_var.pick_highest_prio_waiting_ffa()
@@ -392,6 +403,7 @@ local on_pre_player_toggled_map_editor = function(event)
       Util.save_personal_color(player)
     elseif player.vehicle then
       player.vehicle.set_driver(nil)
+      Util.disable_minimap(player)
     end
     player.clear_items_inside()
     player.force = 'player'
@@ -500,6 +512,10 @@ local on_console_chat = function(event)
   Chat.on_console_chat(event)
 end
 
+local on_console_command = function(event)
+  Prevent_action.on_console_command(event)
+end
+
 local on_built_entity = function(event)
   Prevent_action.on_built_entity(event)
 end
@@ -525,7 +541,7 @@ end
 
 Main.on_nth_tick =
 {
-  [181] = Game_var.on_18000_tick,
+  [18000] = Game_var.on_18000_tick,
   [180] = on_nth_tick__f1_chart,
   [60] = Game_var.on_60_tick,
   [29] = Gui.on_29_tick,
@@ -560,6 +576,7 @@ Main.events =
   [defines.events.on_entity_died] = on_entity_died,
   --[defines.events.on_post_entity_died] = on_post_entity_died,
   [defines.events.on_console_chat] = on_console_chat,
+  [defines.events.on_console_command] = on_console_command,
   [defines.events.on_built_entity] = on_built_entity,
   [defines.events.on_entity_damaged] = on_entity_damaged,
   [defines.events.on_gui_checked_state_changed] = on_gui_checked_state_changed,

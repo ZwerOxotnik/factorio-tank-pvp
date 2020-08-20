@@ -104,6 +104,11 @@ Tank_loots.on_entity_died = function(event)
   end
 end
 
+local loot_blacklist = {
+  ['power-armor-mk2'] = true,
+  ['artillery-targeting-remote'] = true,
+  ['spidertron-remote'] = true,
+}
 --이벤트에 등록해서 쓰다가 버그가 있어서 결국 빼고 on_player_died에 섞어서 씀.
 Tank_loots.on_post_entity_died = function(event)
   if not event.corpses then return end
@@ -115,7 +120,7 @@ Tank_loots.on_post_entity_died = function(event)
           local loots = inv.get_contents()
           for item, count in pairs(loots) do
             if count > Const.loot_limit then count = Const.loot_limit end
-            if item ~= 'power-armor-mk2' then
+            if not loot_blacklist[item] then
               corpse.surface.spill_item_stack(
                 corpse.position,
                 {name = item, count = math.random(1, count)},

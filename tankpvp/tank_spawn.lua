@@ -2,6 +2,7 @@ local Tank_spawn = {}
 
 local Const = require('tankpvp.const')
 local Util = require('tankpvp.util')
+local Balance = require('tankpvp.balance')
 
 local DB = nil
 
@@ -14,11 +15,11 @@ Tank_spawn.count_team_tanks = function()
     local surface = game.surfaces[DB.team_game_opened]
     if surface and surface.valid then
       local t1 = surface.count_entities_filtered{
-        name = 'tank',
+        type = {'car', 'locomotive', 'spider-vehicle'},
         force = Const.team_defines[1].force
       }
       local t2 = surface.count_entities_filtered{
-        name = 'tank',
+        type = {'car', 'locomotive', 'spider-vehicle'},
         force = Const.team_defines[2].force
       }
       return t1, t2
@@ -83,12 +84,7 @@ Tank_spawn.spawn = function(player)
     tank.health = Const.tank_health --빠른 킬 테스트용
   end
   tank.set_driver(player)
-  tank.insert{name = 'solid-fuel', count = 100}
-  tank.insert{name = 'cannon-shell', count = 200}
-  player.insert{name = 'explosive-cannon-shell', count = 100}
-  tank.insert{name = 'piercing-rounds-magazine', count = 200}
-  player.insert{name = 'uranium-rounds-magazine', count = 10}
-  tank.insert{name = 'flamethrower-ammo', count = 100}
+  Balance.starting_consumables(player)
 
   --탱크에 물건넣기 차단
   local trunk = tank.get_inventory(defines.inventory.car_trunk)
@@ -96,30 +92,8 @@ Tank_spawn.spawn = function(player)
     trunk.set_filter(i, 'cut-paste-tool')
   end
 
-  --mk2 아머 만들어서 모듈넣어주기
-  player.insert{name = 'power-armor-mk2', count = 1}
-  local armor = player.get_inventory(defines.inventory.character_main).find_item_stack('power-armor-mk2')
-    or player.get_inventory(defines.inventory.character_armor).find_item_stack('power-armor-mk2')
-  if armor then
-    local inv = armor.grid
-    local batt = nil
-    if inv then
-      inv.put{name = 'fusion-reactor-equipment'}
-      inv.put{name = 'fusion-reactor-equipment'}
-      batt = inv.put{name = 'personal-roboport-equipment'}
-      batt.energy = batt.max_energy
-      batt = inv.put{name = 'battery-mk2-equipment'}
-      batt.energy = batt.max_energy
-      batt = inv.put{name = 'battery-mk2-equipment'}
-      batt.energy = batt.max_energy
-      batt = inv.put{name = 'discharge-defense-equipment'}
-      batt.energy = batt.max_energy
-      batt = inv.put{name = 'discharge-defense-equipment'}
-      batt.energy = batt.max_energy
-      batt = inv.put{name = 'discharge-defense-equipment'}
-      batt.energy = batt.max_energy
-    end
-  end
+  --아머 만들어서 모듈넣어주기
+  Balance.starting_armor(player)
 
   --퀵바 초기화
   player.set_quick_bar_slot(1, 'cannon-shell')
@@ -144,7 +118,7 @@ end
 Tank_spawn.despawn = function(player)
   local PDB = DB.players_data[player.name]
   if player.vehicle then
-    if player.vehicle.get_health_ratio() < 1 then
+    if player.vehicle.get_health_ratio() < 0.9 then
       if player.surface.index == 1 then
         if PDB then
           PDB.ffa_deaths = PDB.ffa_deaths + 1

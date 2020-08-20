@@ -14,6 +14,8 @@ local default_group = function(id)
   pgroup.set_allows_action(defines.input_action.open_bonus_gui, false)
   pgroup.set_allows_action(defines.input_action.open_achievements_gui, false)
   pgroup.set_allows_action(defines.input_action.set_entity_color, false)
+  pgroup.set_allows_action(defines.input_action.paste_entity_settings, false)
+  pgroup.set_allows_action(defines.input_action.fast_entity_transfer, false)
 
   --청사진 관련
   pgroup.set_allows_action(defines.input_action.reassign_blueprint, false)

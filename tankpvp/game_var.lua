@@ -38,6 +38,7 @@ Game_var.init = function()
     team_game_capture_plus = {[1]=0,[2]=0}, --점령증가속도 /초
     team_game_capture_minus = {[1]=0,[2]=0}, --점령감소속도 /초
     team_game_capture_progress = {[1]=0,[2]=0}, --점령상태 0~1
+    team_game_queue_force_to_close_game = false, --팀 게임 강제종료
     ffa_queue = {}, --ffa 사람많을 때 큐
     players_data = {}, --플레이어 데이터베이스
     loading_chunks = { --청크 로딩중?
@@ -298,15 +299,15 @@ local get_outofring_position = function(top_pos)
   return {x=lefttop.x + math.random()*32, y=lefttop.y -2*lefttop.y*math.random()}
 end
 
---장외로 보낼 때 사용. 이전에 관전자로 만드는 기능 필요.
+--장외로 보낼 때 사용. 이전에 관전자로 만드는 기능 : Game_var.remember_position_to_mapview 설정 필요.
 Game_var.move_to_outofring = function(playername)
   local PDB = DB.players_data[playername]
   if PDB.outofring_reserved then
+    local player = game.players[playername]
     local surface_name = PDB.mapview_surface_name
     local surface = game.surfaces[surface_name]
     if surface then
       local position = get_outofring_position{x=surface.map_gen_settings.width/2 + 96, y=-surface.map_gen_settings.height/2}
-      local player = game.players[playername]
       player.teleport(position, surface)
       player.spectator = true
       Game_var.queue_zoom_to_world(playername, PDB.mapview_position, 0.2)
@@ -317,9 +318,10 @@ Game_var.move_to_outofring = function(playername)
     if mode == Const.defines.player_mode.ffa_spectator
       or mode == Const.defines.player_mode.whole_team_spectator
       then
-      game.permissions.get_group('ffa_spec').add_player(playername)
+      game.permissions.get_group('ffa_spec').add_player(player)
     elseif mode == Const.defines.player_mode.team_spectator then
-      game.permissions.get_group('fc_standby').add_player(playername)
+      --game.permissions.get_group('fc_standby').add_player(player) --색못바꾸는거 취소
+      game.permissions.get_group('ffa_spec').add_player(player) --색바꿀수있게함
     end
   end
 end
@@ -347,16 +349,6 @@ Game_var.update_tqueue_count = function()
   end
 end
 
---플레이어가 팀명단에 있으면 팀세력이름을 출력
-Game_var.get_player_team_force = function(playername)
-  for i = 1, 2 do
-    if DB.team_game_players[i][playername] then
-      return Const.team_defines[i].force
-    end
-  end
-  return 'player'
-end
-
 --주로 카운트다운 용도
 Game_var.on_tick = function()
   for name, data in pairs(DB.zoom_world_queue) do
@@ -364,7 +356,6 @@ Game_var.on_tick = function()
     player.zoom_to_world(data.position, data.zoom)
     if player.render_mode ~= defines.render_mode.game then
       DB.zoom_world_queue[name] = nil
-    else
     end
   end
 
@@ -440,6 +431,7 @@ Game_var.update_team_stat = function(refresh_interval_tick)
   --팀전 종료 시
   if DB.team_game_win_state ~= nil then
     if game.tick > DB.team_game_end_tick then
+      DB.team_game_queue_force_to_close_game = false
       DB.team_game_countdown_time = nil
       DB.team_game_remain_time = nil
       DB.team_game_standby_time = nil
@@ -451,6 +443,7 @@ Game_var.update_team_stat = function(refresh_interval_tick)
         playername = player.name
         if player.surface.name == DB.team_game_opened then
           DB.zoom_world_queue[playername] = nil
+          Util.disable_minimap(player)
           player.teleport({0,0}, game.surfaces[1])
           player.spectator = false
           DB.players_data[playername].player_mode = Const.defines.player_mode.ffa_spectator
@@ -600,16 +593,20 @@ Game_var.update_team_stat = function(refresh_interval_tick)
 
     --승패 결정
     if DB.team_game_remain_time == nil then return end
-    if DB.team_game_remained_tanks[1] == 0 and DB.team_game_remained_tanks[2] == 0 then
+    if DB.team_game_queue_force_to_close_game then
+      win_state = 'draw'
+      DB.stat_last_win_reason = 'forceclose'
+      DB.team_game_queue_force_to_close_game = false
+    elseif DB.team_game_remained_tanks[1] == 0 and DB.team_game_remained_tanks[2] == 0 and not Const.no_eliminate_lose then
       win_state = 'draw'
       DB.stat_last_win_reason = 'eliminated'
     elseif DB.team_game_capture_progress[1] >= 1 and DB.team_game_capture_progress[2] >= 1 then
       win_state = 'draw'
       DB.stat_last_win_reason = 'captured'
-    elseif DB.team_game_remained_tanks[1] == 0 then
+    elseif DB.team_game_remained_tanks[1] == 0 and not Const.no_eliminate_lose then
       win_state = Const.team_defines[2]
       DB.stat_last_win_reason = 'eliminated'
-    elseif DB.team_game_remained_tanks[2] == 0 then
+    elseif DB.team_game_remained_tanks[2] == 0 and not Const.no_eliminate_lose then
       win_state = Const.team_defines[1]
       DB.stat_last_win_reason = 'eliminated'
     elseif DB.team_game_capture_progress[1] >= 1 then
@@ -635,11 +632,15 @@ Game_var.update_team_stat = function(refresh_interval_tick)
           DB.stat_lost_players = Util.tablecopy(DB.team_game_players[2])
           DB.stat_won_color = Const.team_defines[1].color
           DB.stat_lost_color = Const.team_defines[2].color
+          DB.stat_won_team_name = Const.team_defines[1].force
+          DB.stat_lost_team_name = Const.team_defines[2].force
         else
           DB.stat_won_players = Util.tablecopy(DB.team_game_players[2])
           DB.stat_lost_players = Util.tablecopy(DB.team_game_players[1])
           DB.stat_won_color = Const.team_defines[2].color
           DB.stat_lost_color = Const.team_defines[1].color
+          DB.stat_won_team_name = Const.team_defines[2].force
+          DB.stat_lost_team_name = Const.team_defines[1].force
         end
       else
         game.print{"team-winner", Util.color2str(win_state.color), win_state.force}
@@ -741,7 +742,7 @@ Game_var.go_spectate_teamgame = function(player)
   if not DB.team_game_opened then return end
   local playername = player.name
   local PDB = DB.players_data[playername]
-  local force = Game_var.get_player_team_force(playername)
+  local force = Util.get_player_team_force(playername)
   if player.surface.name == DB.team_game_opened then return end
   local surface = game.surfaces[DB.team_game_opened]
 
@@ -754,6 +755,8 @@ Game_var.go_spectate_teamgame = function(player)
     player.tag = '[[color='..Util.color2str(Const.team_defines_key[force].color)..']'..force..'[/color]]'
     player.print{"inform-team-chat-mode"}
   end
+  game.permissions.get_group('ffa_spec').add_player(player)
+  Util.disable_minimap(player)
   Tank_spawn.despawn(player)
   Game_var.remove_character(playername)
   player.teleport({surface.map_gen_settings.width/2,0}, surface)
@@ -785,6 +788,7 @@ Game_var.go_return_ffagame = function(player)
   if player.force.name ~= 'player' then
     player.color = Util.get_personal_color(player)
     player.tag = ''
+    Util.disable_minimap(player)
     player.print{"inform-all-chat-mode"}
   end
   Game_var.remove_character(playername)
@@ -854,7 +858,7 @@ Game_var.damage_out_of_field = function(refresh_interval_tick)
   for _, vehicle in pairs(vehicles) do
     if vehicle.force.index > 5 then
       if math.sqrt(vehicle.position.x^2 + vehicle.position.y^2) > DB.field_radius then
-        vehicle.damage(10, 'neutral', 'laser')
+        vehicle.damage(10, 'neutral', 'poison')
       end
     end
   end
@@ -868,20 +872,22 @@ Game_var.remove_old_offline_player = function()
   local to_remove = {}
   for _, player in pairs(game.players) do
     if not player.connected then
-      if player.last_online + lim > now then
+      if player.last_online + lim < now then
         to_remove[#to_remove + 1] = player.name
       end
     end
   end
   for _, playername in pairs(to_remove) do
-    report = report..player_name..', '
+    report = report..playername..', '
     Game_var.remove_player_from_ffa_queue(playername)
     DB.team_game_players[1][playername] = nil
     DB.team_game_players[2][playername] = nil
     DB.players_data[playername] = nil
   end
-  game.remove_offline_players(to_remove)
-  log('\n'..string.format("%.3f",game.tick/60)..' [AUTO-PLAYER-REMOVE] = '..report)
+  if #to_remove > 0 then
+    game.remove_offline_players(to_remove)
+    log('\n'..string.format("%.3f",game.tick/60)..' [AUTO-PLAYER-REMOVE] = '..report)
+  end
 end
 
 --on_nth_tick 이벤트용

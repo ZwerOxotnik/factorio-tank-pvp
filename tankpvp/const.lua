@@ -1,7 +1,23 @@
 --상수
 local Const = {}
 
+--testmode를 0, false, nil을 하면 꺼지고, 1, true를 하면 가동
+local testmode = 1
+local test_redefine = function()
+--test--------------------------
 --Const.tank_health = 200 --빠른 킬 테스트용, --기본은 코멘트처리
+Const.no_eliminate_lose = true
+Const.ffa_radius = 50
+Const.ffa_min_fieldr = 25
+Const.ffa_max_fieldr = 55
+Const.min_people_tdm = 1
+Const.team_start_cntdn_max = 600
+Const.team_start_cntdn_min = 600
+Const.team_game_standby_time = 300
+--test-end----------------------
+end
+
+Const.no_eliminate_lose = false --테스트용. 전멸로 패배하지 않음.
 Const.force_limit = 64 --5는 ffa없음, 6으로 하면 혼자 테스트. 최대64(최대59명의 FFA플레이어)
 Const.respawn_time = 300 --틱 단위 300
 Const.ffa_radius = 300 --타일 단위 300
@@ -9,10 +25,10 @@ Const.ffa_min_fieldr = 100 --타일 전기장최소반지름 100
 Const.ffa_max_fieldr = 305 --타일 전기장최대반지름 305
 Const.ffa_max_field_cnt = 30 --전기장 최대반지름이기 위한 사람 수 30
 Const.loot_limit = 10 --사망시 템 종류별로 떨구는 최대 갯수 10
-Const.min_people_tdm = 1 --팀 데스매치 카운트 개시 최소인원. 4명
-Const.team_start_cntdn_max = 600 --틱 단위. 최대 대기시간 7200
+Const.min_people_tdm = 4 --팀 데스매치 카운트 개시 최소인원. 4명
+Const.team_start_cntdn_max = 7200 --틱 단위. 최대 대기시간 7200
 Const.team_start_cntdn_per = 480 --틱 단위. 추가 인원당 시간 감소 480
-Const.team_start_cntdn_min = 600 --틱 단위. 최소 대기시간 900
+Const.team_start_cntdn_min = 900 --틱 단위. 최소 대기시간 900
 Const.team_game_standby_time = 900 --틱 단위. 팀 데스매치 시작 직전 카운트다운 900
 Const.team_roundtime_min = 25260 --최소 라운드 시간 25260
 Const.team_roundtime_per = 600 --추가1인당 추가 라운드 시간 600
@@ -65,5 +81,9 @@ Const.ammo_categories = {
   'combat-robot-laser', 'electric', 'flamethrower', 'grenade', 'landmine', 'laser-turret',
   'melee', 'railgun', 'rocket', 'shotgun-shell'
 }
+
+if testmode and testmode ~= 0 then
+  test_redefine()
+end
 
 return Const
