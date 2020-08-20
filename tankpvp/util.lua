@@ -16,6 +16,32 @@ Util.color2str = function(color)
   return string.format("%.3f,%.3f,%.3f,%.3f",r,g,b,a)
 end
 
+--Gui --spectator로 전환시 닫히는 gui는 on_gui_closed를 발생시키지 않는 문제
+--character.destroy()를 치환
+Util.ch_destroy = function(character)
+  local player = nil
+  if character.player then
+    player = character.player
+  end
+  character.destroy()
+  if player then
+    if global.tankpvp_.players_data[player.name].guis.tdmstat_frame.visible then
+      global.tankpvp_.players_data[player.name].guis.tdmstat_frame.visible = false
+      player.opened = nil
+    end
+  end
+end
+
+--Gui --spectator로 전환시 닫히는 gui는 on_gui_closed를 발생시키지 않는 문제
+--player.set_controller{type = defines.controllers.spectator}를 치환
+Util.set_control_spect = function(player)
+  player.set_controller{type = defines.controllers.spectator}
+  if global.tankpvp_.players_data[player.name].guis.tdmstat_frame.visible then
+    global.tankpvp_.players_data[player.name].guis.tdmstat_frame.visible = false
+    player.opened = nil
+  end
+end
+
 --Database
 Util.save_personal_color = function(player)
   global.tankpvp_.players_data[player.name].personal_color = {r=player.color.r,g=player.color.g,b=player.color.b,a=player.color.a}
@@ -137,6 +163,7 @@ Util.opengui_last_team_stat = function(player)
   local tdmstat_inner = PDB.guis.tdmstat_inner
   local align = nil
   tdmstat_frame.visible = true
+  player.opened = tdmstat_frame
   tdmstat_frame.force_auto_center()
   
   local won_color = {0.7,0.7,0.7,1}
@@ -224,15 +251,22 @@ Util.opengui_last_team_stat = function(player)
   end
   for i, v in ipairs(DB.order_capture_stat_won_players) do
     Util.add_label_w_style(table2L, v.key, nil, {font_color = Util.pcolor(v.key), font = 'default-bold'})
-    Util.add_label_w_style(table2L, string.format("%.1f",v.recover), nil, {})
-    Util.add_label_w_style(table2L, string.format("%.1f",v.capture), nil, {})
+    Util.add_label_w_style(table2L, string.format("%.1g",v.recover), nil, {})
+    Util.add_label_w_style(table2L, string.format("%.1g",v.capture), nil, {})
     Util.add_label_w_style(table2L, survived_string(v.survived), nil, {})
   end
   for i, v in ipairs(DB.order_capture_stat_lost_players) do
     Util.add_label_w_style(table2R, survived_string(v.survived), nil, {})
-    Util.add_label_w_style(table2R, string.format("%.1f",v.capture), nil, {})
-    Util.add_label_w_style(table2R, string.format("%.1f",v.recover), nil, {})
+    Util.add_label_w_style(table2R, string.format("%.1g",v.capture), nil, {})
+    Util.add_label_w_style(table2R, string.format("%.1g",v.recover), nil, {})
     Util.add_label_w_style(table2R, v.key, nil, {font_color = Util.pcolor(v.key), font = 'default-bold'})
+  end
+end
+
+--Force
+Util.copypaste_damage_modifier = function(source,target)
+  for i, ammo in pairs(Const.ammo_categories) do
+    target.set_ammo_damage_modifier(ammo,source.get_ammo_damage_modifier(ammo))
   end
 end
 

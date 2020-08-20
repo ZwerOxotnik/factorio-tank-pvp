@@ -77,7 +77,12 @@ Terrain.resetffa = function()
   surface.map_gen_settings = ffa_map_gen_settings(Const.ffa_radius, surface.map_gen_settings.seed)
   surface.clear(false)
   surface.always_day = true
+  DB.reset_ffa_at_next_break = false
   DB.surface1_initialized = false
+  if game.tick > 2000 then
+    game.print{"inform_resetffa_reason_period", Const.ffa_reset_interval}
+    log{"",string.format("%.3f",game.tick/60),' [AUTO-RESET] Auto resetffa reason = ', Const.ffa_reset_interval, 'h interval'}
+  end
 end
 
 Terrain.on_surface_cleared = function(event)
@@ -88,7 +93,7 @@ Terrain.on_surface_cleared = function(event)
     for _, player in pairs(game.connected_players) do
       if player.surface.index == 1 and player.controller_type ~= defines.controllers.editor then
         player.force = 'player'
-        player.set_controller{type = defines.controllers.spectator}
+        Util.set_control_spect(player)
       end
     end
     for i = #game.forces, 6, -1 do

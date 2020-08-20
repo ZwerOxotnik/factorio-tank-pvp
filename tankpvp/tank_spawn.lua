@@ -1,6 +1,7 @@
 local Tank_spawn = {}
 
 local Const = require('tankpvp.const')
+local Util = require('tankpvp.util')
 
 local DB = nil
 
@@ -33,7 +34,7 @@ Tank_spawn.spawn = function(player)
     local character = player.character
     if character then
       player.character = nil
-      character.destroy()
+      Util.ch_destroy(character)
     end
     character = player.surface.create_entity{
       name = 'character',

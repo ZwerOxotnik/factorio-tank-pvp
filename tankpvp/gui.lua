@@ -248,19 +248,38 @@ Gui.on_gui_click = function(event)
   local player = game.players[event.player_index]
   local PDB = DB.players_data[player.name]
   if not PDB then return end
-  if not PDB.guis.tspec_frame then return end
+  if not PDB.guis then return end
 
   if event.element == PDB.guis.tspec_frame.tspecbtn then
     Game_var.go_spectate_teamgame(player)
   elseif event.element == PDB.guis.tspec_ing_frame.quitbtn then
     Game_var.go_return_ffagame(player)
   elseif event.element == PDB.guis.stat_view_btn then
-    if PDB.guis.tdmstat_frame.visible then
+    if player.opened == PDB.guis.tdmstat_frame or PDB.guis.tdmstat_frame.visible then
+      player.opened = nil
       PDB.guis.tdmstat_frame.visible = false
     else
       Util.opengui_last_team_stat(player)
     end
   elseif event.element == PDB.guis.tdmstat_frame.header.closebtn then
+    if player.opened == PDB.guis.tdmstat_frame then
+      player.opened = nil
+    end
+    PDB.guis.tdmstat_frame.visible = false
+  end
+end
+
+--닫을 때 (esc 등)
+Gui.on_gui_closed = function(event)
+  if event.gui_type ~= defines.gui_type.custom then return end
+  if not event.element then return end
+  if not event.element.valid then return end
+  local player = game.players[event.player_index]
+  local PDB = DB.players_data[player.name]
+  if not PDB then return end
+  if not PDB.guis then return end
+
+  if event.element == PDB.guis.tdmstat_frame then
     PDB.guis.tdmstat_frame.visible = false
   end
 end

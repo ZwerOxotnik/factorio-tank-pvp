@@ -70,15 +70,17 @@ Damaging.on_entity_damaged = function(event)
               if target.force.name == team_defines[1].force or target.force.name == team_defines[2].force then
                 if DB.team_game_opened and DB.team_game_end_tick == nil then
                   PDB.tdm_damage_dealt = PDB.tdm_damage_dealt + event.final_damage_amount
-                  local surface = game.surfaces[DB.team_game_opened]
-                  if surface == target.surface then
-                    local center = dealer.force.get_spawn_position(surface)
-                    if math.sqrt((target.position.x - center.x)^2 + (target.position.y - center.y)^2) < capture_radius then
-                      local index = team_defines_key[dealer.force.name].index
-                      DB.team_game_capture_progress[index] = DB.team_game_capture_progress[index] - recover_capture_per_hit
-                      PDB.tdm_recover = PDB.tdm_recover + recover_capture_per_hit * 100
-                      if DB.team_game_capture_progress[index] < 0 then
-                        DB.team_game_capture_progress[index] = 0
+                  if event.final_damage_amount > 0.3 then
+                    local surface = game.surfaces[DB.team_game_opened]
+                    if surface == target.surface then
+                      local center = dealer.force.get_spawn_position(surface)
+                      if math.sqrt((target.position.x - center.x)^2 + (target.position.y - center.y)^2) < capture_radius then
+                        local index = team_defines_key[dealer.force.name].index
+                        DB.team_game_capture_progress[index] = DB.team_game_capture_progress[index] - recover_capture_per_hit
+                        PDB.tdm_recover = PDB.tdm_recover + recover_capture_per_hit * 100
+                        if DB.team_game_capture_progress[index] < 0 then
+                          DB.team_game_capture_progress[index] = 0
+                        end
                       end
                     end
                   end

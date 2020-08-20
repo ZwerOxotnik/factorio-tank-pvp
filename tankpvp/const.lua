@@ -7,9 +7,9 @@ Const.respawn_time = 300 --틱 단위 300
 Const.ffa_radius = 300 --타일 단위 300
 Const.ffa_min_fieldr = 100 --타일 전기장최소반지름 100
 Const.ffa_max_fieldr = 305 --타일 전기장최대반지름 305
-Const.ffa_max_field_cnt = 30 --전기장 최대반지름이기 위한 사람 수
+Const.ffa_max_field_cnt = 30 --전기장 최대반지름이기 위한 사람 수 30
 Const.loot_limit = 10 --사망시 템 종류별로 떨구는 최대 갯수 10
-Const.min_people_tdm = 2 --팀 데스매치 카운트 개시 최소인원. 4명
+Const.min_people_tdm = 1 --팀 데스매치 카운트 개시 최소인원. 4명
 Const.team_start_cntdn_max = 600 --틱 단위. 최대 대기시간 7200
 Const.team_start_cntdn_per = 480 --틱 단위. 추가 인원당 시간 감소 480
 Const.team_start_cntdn_min = 600 --틱 단위. 최소 대기시간 900
@@ -29,6 +29,8 @@ Const.team_map_height_min = 250 --팀 데스매치 맵 최소높이 250
 Const.team_map_width_per = 4 --팀 데스매치 맵 사람당 추가폭 4
 Const.team_map_height_per = 5 --팀 데스매치 맵 사람당 추가높이 5
 Const.recover_capture_per_hit = 0.001 --타격당 감소시키는 점령수치(점령은 0.0~1.0)
+Const.offline_limit = 30.0 --(Hour) 오프라인 이후 삭제까지 걸리는 시간(1시간=216000, 30시간=6480000)
+Const.ffa_reset_interval = 6 --(Hour)
 Const.team_defines = {
   [1] = {
     index = 1,
@@ -57,6 +59,11 @@ Const.defines = {
     team_spectator = 4, --team 사망자
     whole_team_spectator = 5 --team에 나중에 참여한 관전자
   }
+}
+Const.ammo_categories = {
+  'artillery-shell', 'biological', 'bullet', 'cannon-shell', 'capsule', 'combat-robot-beam',
+  'combat-robot-laser', 'electric', 'flamethrower', 'grenade', 'landmine', 'laser-turret',
+  'melee', 'railgun', 'rocket', 'shotgun-shell'
 }
 
 return Const

@@ -39,7 +39,6 @@ Game_var.init = function()
     team_game_capture_minus = {[1]=0,[2]=0}, --점령감소속도 /초
     team_game_capture_progress = {[1]=0,[2]=0}, --점령상태 0~1
     ffa_queue = {}, --ffa 사람많을 때 큐
-    team_game_queue = {}, --team게임 참가희망자 목록
     players_data = {}, --플레이어 데이터베이스
     loading_chunks = { --청크 로딩중?
       surface_name = nil,
@@ -63,7 +62,9 @@ Game_var.init = function()
     order_capture_stat_won_players = {},
     order_capture_stat_lost_players = {},
     last_connected_players = 0, --Game_var.damage_out_of_field 에서 갱신함
-    field_radius = Const.ffa_max_fieldr --Game_var.redraw_sizing_field 에서 갱신함
+    field_radius = Const.ffa_max_fieldr, --Game_var.redraw_sizing_field 에서 갱신함
+    last_ffa_reset = 0,
+    reset_ffa_at_next_break = false,
   }
 end
 
@@ -99,15 +100,14 @@ Game_var.remove_character = function(pname_or_index)
   local character = player.character
   if character then
     player.character = nil
-    character.destroy()
+    Util.ch_destroy(character)
   end
-  player.set_controller{type = defines.controllers.spectator}
+  Util.set_control_spect(player)
 end
 
 --플레이어 스폰
-Game_var.player_spawn_in_ffa = function(player_index, fixed_spawn) --리스폰이 아님
-  local player = game.players[player_index]
-  local playername = player.name
+Game_var.player_spawn_in_ffa = function(playername, fixed_spawn) --리스폰이 아님
+  local player = game.players[playername]
   local force, forcei = Force.pick_no_one_connected()
   local spawn = {}
   player.force = force
@@ -126,7 +126,7 @@ Game_var.player_spawn_in_ffa = function(player_index, fixed_spawn) --리스폰�
       position = player.position,
       text = '[font=default-game]TANK IS READY[img=item/tank][/font]',
       color = {1, 1, 0, 1},
-      render_player_index = player_index
+      render_player_index = player.index
     }
     player.play_sound{path = 'utility/new_objective', volume_modifier = 1}
     player.force.chart(game.surfaces[1], {{-FR, -FR}, {FR, FR}})
@@ -165,6 +165,30 @@ Game_var.remove_player_from_ffa_queue = function(playername)
     if name == playername then
       table.remove(DB.ffa_queue, i)
       break
+    end
+  end
+end
+
+--ffa큐에서 오프라인 플레이어 삭제
+Game_var.remove_offline_player_from_ffa_queue = function()
+  local removed = true
+  local count = 0
+  while removed do
+    removed = false
+    for i, name in ipairs(DB.ffa_queue) do
+      if game.players[name] then
+        if not game.players[name].connected then
+          table.remove(DB.ffa_queue, i)
+          removed = true
+          count = count + 1
+          break
+        end
+      else
+        table.remove(DB.ffa_queue, i)
+        removed = true
+        count = count + 1
+        break
+      end
     end
   end
 end
@@ -432,6 +456,7 @@ Game_var.update_team_stat = function(refresh_interval_tick)
           DB.players_data[playername].player_mode = Const.defines.player_mode.ffa_spectator
           Game_var.player_left(playername)
           player.force = 'player'
+          player.tag = ''
           player.print{"inform-all-chat-mode"}
           game.permissions.get_group(0).add_player(player)
           player.color = Util.get_personal_color(player)
@@ -449,14 +474,18 @@ Game_var.update_team_stat = function(refresh_interval_tick)
       end
       game.delete_surface(DB.team_game_opened)
       DB.team_game_opened = nil
+      DB.team_game_win_state = nil
       DB.team_game_end_tick = nil
       while Force.find_no_one_connected() do
         local new_player_name = Game_var.pick_highest_prio_waiting_ffa()
         if new_player_name then
-          Game_var.player_spawn_in_ffa(game.players[new_player_name].index)
+          Game_var.player_spawn_in_ffa(new_player_name)
         else
           break
         end
+      end
+      if DB.reset_ffa_at_next_break then
+        Terrain.resetffa()
       end
     end
     return
@@ -722,6 +751,7 @@ Game_var.go_spectate_teamgame = function(player)
   else
     PDB.player_mode = Const.defines.player_mode.team_spectator
     Util.save_personal_color(player)
+    player.tag = '[[color='..Util.color2str(Const.team_defines_key[force].color)..']'..force..'[/color]]'
     player.print{"inform-team-chat-mode"}
   end
   Tank_spawn.despawn(player)
@@ -742,6 +772,7 @@ Game_var.go_return_ffagame = function(player)
   if player.surface.index == 1 then return end
   local playername = player.name
   local PDB = DB.players_data[playername]
+  local force = nil
 
   if player.vehicle then
     if DB.team_game_end_tick then
@@ -750,19 +781,19 @@ Game_var.go_return_ffagame = function(player)
       return
     end
   end
-  Game_var.remove_character(playername)
   player.teleport({0,0}, game.surfaces[1])
-  if player.force ~= 'player' then
+  if player.force.name ~= 'player' then
     player.color = Util.get_personal_color(player)
+    player.tag = ''
     player.print{"inform-all-chat-mode"}
   end
-  player.force = 'player'
+  Game_var.remove_character(playername)
   player.spectator = false
   PDB.player_mode = Const.defines.player_mode.ffa_spectator
   Game_var.player_left(playername)
   game.permissions.get_group(0).add_player(playername)
   PDB.last_tick_start_queue_for_ffa = game.tick
-  Game_var.player_spawn_in_ffa(player.index)
+  Game_var.player_spawn_in_ffa(playername)
   PDB.guis.tdm_frame.visible = false
   PDB.guis.ffa_frame.visible = true
   PDB.guis.tspec_ing_frame.visible = false
@@ -829,7 +860,42 @@ Game_var.damage_out_of_field = function(refresh_interval_tick)
   end
 end
 
+--오래된 오프라인 플레이어 이력 삭제하기
+Game_var.remove_old_offline_player = function()
+  local now = game.tick
+  local lim = math.floor(Const.offline_limit*216000)
+  local report = ''
+  local to_remove = {}
+  for _, player in pairs(game.players) do
+    if not player.connected then
+      if player.last_online + lim > now then
+        to_remove[#to_remove + 1] = player.name
+      end
+    end
+  end
+  for _, playername in pairs(to_remove) do
+    report = report..player_name..', '
+    Game_var.remove_player_from_ffa_queue(playername)
+    DB.team_game_players[1][playername] = nil
+    DB.team_game_players[2][playername] = nil
+    DB.players_data[playername] = nil
+  end
+  game.remove_offline_players(to_remove)
+  log('\n'..string.format("%.3f",game.tick/60)..' [AUTO-PLAYER-REMOVE] = '..report)
+end
+
 --on_nth_tick 이벤트용
+Game_var.on_18000_tick = function()
+  Game_var.remove_old_offline_player()
+  if DB.last_ffa_reset + math.floor(Const.ffa_reset_interval*216000) < game.tick then
+    if DB.loading_chunks.is_loading or DB.team_game_opening or DB.team_game_opened or DB.team_game_end_tick or not DB.surface1_initialized then
+      DB.reset_ffa_at_next_break = true
+    else
+      Terrain.resetffa()
+    end
+  end
+end
+
 Game_var.on_10_tick = function()
   Game_var.update_team_stat(10)
 end
