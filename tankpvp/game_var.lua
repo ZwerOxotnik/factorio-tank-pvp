@@ -491,38 +491,37 @@ Game_var.update_team_stat = function(refresh_interval_tick)
   local surface = game.surfaces[DB.team_game_opened]
   if surface then
     local win_state = nil
-    local force1 = game.forces[Const.team_defines[1].force]
-    local force2 = game.forces[Const.team_defines[2].force]
+    local force = {game.forces[Const.team_defines[1].force], game.forces[Const.team_defines[2].force]}
     local CR = Const.capture_radius + 0.707
     local capture_speed = {[1]=0,[2]=0}
     --점령증가속도 인원
     local capture_plus = {
       [1] = surface.find_entities_filtered{
-        position = force1.get_spawn_position(surface),
+        position = force[1].get_spawn_position(surface),
         radius = CR,
         type = {'car', 'spider-vehicle', 'locomotive'},
-        force = force2
+        force = force[2]
       },
       [2] = surface.find_entities_filtered{
-        position = force2.get_spawn_position(surface),
+        position = force[2].get_spawn_position(surface),
         radius = CR,
         type = {'car', 'spider-vehicle', 'locomotive'},
-        force = force1
+        force = force[1]
       },
     }
     --점령감소속도 인원
     local capture_minus = {
       [1] = surface.find_entities_filtered{
-        position = force1.get_spawn_position(surface),
+        position = force[1].get_spawn_position(surface),
         radius = CR,
         type = {'car', 'spider-vehicle', 'locomotive'},
-        force = force1
+        force = force[1]
       },
       [2] = surface.find_entities_filtered{
-        position = force2.get_spawn_position(surface),
+        position = force[2].get_spawn_position(surface),
         radius = CR,
         type = {'car', 'spider-vehicle', 'locomotive'},
-        force = force2
+        force = force[2]
       },
     }
     local cp = {[1]=0,[2]=0}
@@ -538,6 +537,7 @@ Game_var.update_team_stat = function(refresh_interval_tick)
     if cm[2] > CL then cm[2] = CL end
 
     --점령상태 value = 0~1
+    local vers = 0
     for i = 1, 2 do
       capture_speed[i] = Const.capture_speed / 6000 * refresh_interval_tick * (cp[i] - cm[i])
     end
@@ -550,6 +550,25 @@ Game_var.update_team_stat = function(refresh_interval_tick)
         DB.team_game_capture_progress[i] = 0
       else
         DB.team_game_capture_progress[i] = DB.team_game_capture_progress[i] + capture_speed[i]
+      end
+    end
+    local speaker = {}
+    for i = 1, 2 do
+      speaker = surface.find_entities_filtered{position = {1000000, -1000000}, radius = 2, force = force[i]}
+      if capture_speed[i] > 0 and #speaker == 0 then
+        local e = {}
+        e[1] = surface.create_entity{name = 'programmable-speaker', position = {1000000, -1000000}, force = force[i]}
+        e[2] = surface.create_entity{name = 'hidden-electric-energy-interface', position = e[1].position, force = force[i]}
+        e[3] = surface.create_entity{name = 'crash-site-electric-pole', position = e[1].position, force = force[i]}
+        for i = 1, 3 do e[i].operable = false e[i].minable = false e[i].destructible = false end
+        e[3].connect_neighbour{ wire = defines.wire_type.red, target_entity = e[1]}
+        e[2].power_production = 34
+        e[2].electric_buffer_size = 34
+        e[1].parameters = {playback_volume = 0.75, playback_globally = true, allow_polyphony = false}
+        e[1].get_control_behavior().circuit_parameters = {signal_value_is_pitch = false, instrument_id = 0, note_id = 6}
+        e[1].get_control_behavior().circuit_condition = {condition = {comparator = '=', first_signal = {type = 'virtual', name = 'signal-everything'}, second_signal = nil, constant = 0}, fulfilled = true}
+      elseif capture_speed[i] <= 0 and #speaker > 0 then
+        for _, e in pairs(speaker) do e.destroy() end
       end
     end
 
@@ -621,6 +640,8 @@ Game_var.update_team_stat = function(refresh_interval_tick)
     end
     --승패가 결정난 경우
     if win_state then
+      local speaker = surface.find_entities_filtered{position = {1000000, -1000000}, radius = 2}
+      for _, e in pairs(speaker) do e.destroy() end
       if win_state == 'draw' then
         game.print{"team-draw"}
         log('\n[TEAM-RESULT] draw')

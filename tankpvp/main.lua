@@ -334,7 +334,7 @@ local on_player_respawned = function(event)
       position = player.position,
       text = '[font=default-game]TANK IS READY[img=item/tank][/font]',
       color = {1, 1, 0, 1},
-      render_player_index = player_index
+      render_player_index = event.player_index
     }
     player.play_sound{path = 'utility/new_objective', volume_modifier = 1}
   --관전자로 부활.

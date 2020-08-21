@@ -38,7 +38,7 @@ Damaging.on_entity_damaged = function(event)
   end
   local target = event.entity
   if target.force ~= event.cause.force then
-    if types[event.cause.type] or event.cause.last_user or event.cause.player then
+    if types[event.cause.type] or event.cause.last_user then
 
       --딜러가 플레이어
       local dealer = nil
@@ -55,8 +55,10 @@ Damaging.on_entity_damaged = function(event)
         else
           dealer = event.cause.last_user
         end
+      elseif event.cause.type == 'character' then
+        dealer = event.cause.player
       else
-        dealer = event.cause.last_user or event.cause.player
+        dealer = event.cause.last_user
       end
 
       --딜러 점수 계산

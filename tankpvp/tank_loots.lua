@@ -27,7 +27,7 @@ Tank_loots.on_entity_died = function(event)
       local PDB = DB.players_data[player.name]
       Util.save_quick_bar(player, vehicle.name)
       if event.cause then
-        if vehicle_types[event.cause.type] or event.cause.last_user or event.cause.player then
+        if vehicle_types[event.cause.type] or event.cause.last_user then
 
           --킬러가 플레이어
           local killer = nil
@@ -44,8 +44,10 @@ Tank_loots.on_entity_died = function(event)
             else
               killer = event.cause.last_user
             end
+          elseif event.cause.type == 'character' then
+            killer = event.cause.player
           else
-            killer = event.cause.last_user or event.cause.player
+            killer = event.cause.last_user
           end
 
           if killer then

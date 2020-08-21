@@ -11,7 +11,7 @@ Balance.init = function()
   local force = game.forces['player']
   force.set_ammo_damage_modifier('bullet', 1.035)
   force.set_ammo_damage_modifier('cannon-shell', 0.45)
-  force.set_ammo_damage_modifier('flamethrower', 2)
+  force.set_ammo_damage_modifier('flamethrower', 1.85)
   force.set_ammo_damage_modifier('landmine', -0.35)
   force.set_ammo_damage_modifier('grenade', 1.9)
   force.set_ammo_damage_modifier('rocket', -0.40)
@@ -401,6 +401,16 @@ local breaker_types = {
   ['fluid-wagon'] = true,
   ['spider-vehicle'] = true,
 }
+local mob_pop = {
+  ['small-biter'] = {chance = 0.15, count = 100},
+  ['medium-biter'] = {chance = 0.3, count = 20},
+  ['big-biter'] = {chance = 0.2, count = 8},
+  ['behemoth-biter'] = {chance = 0.1, count = 2},
+  ['small-spitter'] = {chance = 0.2, count = 50},
+  ['medium-spitter'] = {chance = 0.3, count = 20},
+  ['big-spitter'] = {chance = 0.2, count = 8},
+  ['behemoth-spitter'] = {chance = 0.1, count = 2},
+}
 --보급상자를 부수면 내용물이 떨어진다.
 Balance.on_entity_damaged = function(event)
   if event.final_health > 0 then return end
@@ -411,21 +421,25 @@ Balance.on_entity_damaged = function(event)
   if not supply_names_at_k[event.entity.name] then return end
 
   local breaker = nil
-  if breaker_types[event.cause.type] or event.cause.last_user or event.cause.player then
-    breaker = event.cause.get_driver()
-    if breaker then
-      if breaker.player then
-        breaker = breaker.player
-      elseif breaker.is_player() then
-        breaker = breaker
+  if event.cause and event.cause.valid then
+    if breaker_types[event.cause.type] or event.cause.last_user then
+      breaker = event.cause.get_driver()
+      if breaker then
+        if breaker.player then
+          breaker = breaker.player
+        elseif breaker.is_player() then
+          breaker = breaker
+        else
+          breaker = event.cause.last_user
+        end
       else
         breaker = event.cause.last_user
       end
+    elseif event.cause.type == 'character' then
+      breaker = event.cause.player
     else
       breaker = event.cause.last_user
     end
-  else
-    breaker = event.cause.last_user or event.cause.player
   end
 
   local distance = nil
@@ -466,6 +480,16 @@ Balance.on_entity_damaged = function(event)
       text = {"supply-took-by", breaker.name},
       color = {1, 0.8, 0, 1}
     }
+  end
+  local fpos = nil
+  for name, v in pairs(mob_pop) do
+    if v.chance >= math.random() then
+      fpos = box.surface.find_non_colliding_position(name, box.position, 30, 0.2)
+      if not fpos then fpos = box.position end
+      for i = 1, math.random(1, v.count) do
+        box.surface.create_entity{name = name, force = 'enemy', position = fpos}
+      end
+    end
   end
 end
 local damage_filters = {}
