@@ -2,6 +2,7 @@ local Tank_loots = {}
 Tank_loots.event_filters = {}
 
 local Const = require('tankpvp.const')
+local Util = require('tankpvp.util')
 
 local DB = nil
 
@@ -9,26 +10,28 @@ Tank_loots.on_load = function()
   DB = global.tankpvp_
 end
 
-local types = {
+local vehicle_types = {
   ['car'] = true,
   ['locomotive'] = true,
   ['spider-vehicle'] = true,
 }
 Tank_loots.on_entity_died = function(event)
   if not event.entity.valid then return end
-  if not types[event.entity.type] then return end
+  if not vehicle_types[event.entity.type] then return end
   local vehicle = event.entity
+  if event.force.name == 'player' then return end
   if vehicle.get_driver() then
     local character = vehicle.get_driver()
     if character.player then
       local player = character.player
       local PDB = DB.players_data[player.name]
+      Util.save_quick_bar(player, vehicle.name)
       if event.cause then
-        if types[event.cause.type] or event.cause.last_user then
+        if vehicle_types[event.cause.type] or event.cause.last_user or event.cause.player then
 
           --킬러가 플레이어
           local killer = nil
-          if types[event.cause.type] then
+          if vehicle_types[event.cause.type] then
             killer = event.cause.get_driver()
             if killer then
               if killer.player then
@@ -42,7 +45,7 @@ Tank_loots.on_entity_died = function(event)
               killer = event.cause.last_user
             end
           else
-            killer = event.cause.last_user
+            killer = event.cause.last_user or event.cause.player
           end
 
           if killer then

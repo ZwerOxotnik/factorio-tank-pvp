@@ -75,7 +75,9 @@ local on_tick = function()
       end
     end
     local percent = (t / (t + f))
-    if surface.index ~= 1 then --nauvis가 아닌 경우(팀전 맵)
+
+    --nauvis가 아닌 경우(팀전 맵)
+    if surface.index ~= 1 then
       for _, player in pairs(game.connected_players) do
         Gui.loading_team_chunks(player, percent, LCDB.surface_name)
       end
@@ -177,6 +179,7 @@ local on_tick = function()
             player.color = Const.team_defines[i].color
             DB.team_game_players[i][playername] = true
             Tank_spawn.spawn(player)
+            player.character.allow_dispatching_robots = false
             no_move.add_player(player) --이제 standby시간임. 시간동안 못움직이게 함.
           end
           game.forces[force].chart(surface, area)
@@ -402,6 +405,7 @@ local on_pre_player_toggled_map_editor = function(event)
       Tank_spawn.despawn(player)
       Util.save_personal_color(player)
     elseif player.vehicle then
+      Util.save_quick_bar(player, player.vehicle.name)
       player.vehicle.set_driver(nil)
       Util.disable_minimap(player)
     end
@@ -518,12 +522,19 @@ end
 
 local on_built_entity = function(event)
   Prevent_action.on_built_entity(event)
+  Tank_spawn.on_built_entity(event)
 end
 
 local on_entity_damaged = function(event)
+  Balance.on_entity_damaged(event)
   Damaging.on_entity_damaged(event)
 end
-event_filters[#event_filters + 1] = Damaging.event_filters.on_entity_damaged
+do
+  local merged_filter = {defines.events.on_entity_damaged, {}}
+  for _, v in pairs(Balance.event_filters.on_entity_damaged[2]) do table.insert(merged_filter[2], v) end
+  for _, v in pairs(Damaging.event_filters.on_entity_damaged[2]) do table.insert(merged_filter[2], v) end
+  event_filters[#event_filters + 1] = merged_filter
+end
 
 local on_gui_checked_state_changed = function(event)
   Gui.on_gui_checked_state_changed(event)
@@ -541,7 +552,9 @@ end
 
 Main.on_nth_tick =
 {
+  [54000] = Tank_spawn.periodic_fuel_refill_ffa,
   [18000] = Game_var.on_18000_tick,
+  [1200] = Balance.on_1200_tick_drop_supply_ffa,
   [180] = on_nth_tick__f1_chart,
   [60] = Game_var.on_60_tick,
   [29] = Gui.on_29_tick,

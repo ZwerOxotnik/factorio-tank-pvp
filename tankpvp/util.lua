@@ -338,4 +338,50 @@ Util.disable_minimap = function(player)
   player.game_view_settings.show_minimap = false
 end
 
+--Math
+Util.pick_random_in_circle = function(radius)
+  local x, y = -radius, -radius
+  while x^2 + y^2 > radius^2 do
+    x = math.random(-radius, radius)
+    y = math.random(-radius, radius)
+  end
+  return {x = x, y = y}
+end
+
+--Inventory
+Util.dispose_to_make_slot = function(player, nslot)
+  local inv = player.get_main_inventory()
+  local rand = nil
+  for i = 1, nslot do
+    if inv.count_empty_stacks(true) < nslot then
+      rand = math.random(1,#inv)
+      inv.set_filter(rand, nil)
+      inv[rand].clear()
+    else
+      break
+    end
+  end
+end
+
+--QuickBar
+Util.save_quick_bar = function(player, vehiclename)
+  local slots = {}
+  for i = 1, 20 do
+    slots[i] = player.get_quick_bar_slot(i)
+    if slots[i] then slots[i] = slots[i].name end
+  end
+  global.tankpvp_.players_data[player.name].quick_bars[vehiclename] = slots
+end
+Util.load_quick_bar = function(player, vehiclename)
+  local slots = global.tankpvp_.players_data[player.name].quick_bars[vehiclename]
+  if slots then
+    for i = 1, 20 do
+      player.set_quick_bar_slot(i, slots[i])
+    end
+    return true
+  else
+    return false
+  end
+end
+
 return Util

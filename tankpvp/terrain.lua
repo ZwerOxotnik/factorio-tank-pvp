@@ -1,6 +1,7 @@
 local Terrain = {}
 
 local Const = require('tankpvp.const')
+local Util = require('tankpvp.util')
 
 local DB = nil
 
@@ -175,25 +176,23 @@ Terrain.get_ffa_spawn = function()
   local try = 0
   local radius = DB.field_radius - 1 --Const.ffa_radius
   while not valid do
-    p.x = math.random(-radius, radius)
-    p.y = math.random(-radius, radius)
-    if p.x^2 + p.y^2 < radius^2 then
-      tiles = surface.find_tiles_filtered{
-        position = p,
-        radius = 5,
-        limit = 70,
-        collision_mask = 'ground-tile'
-      }
-      if #tiles > 60 then
-        if surface.count_entities_filtered{position = p, radius = 5, type = 'cliff' } == 0
-          and surface.count_entities_filtered{position = p, radius = 5, type = 'wall' } == 0
-          and surface.count_entities_filtered{position = p, radius = 5, type = 'car' } == 0
-          then
-          valid = true
-        end
+    p = Util.pick_random_in_circle(radius)
+    tiles = surface.find_tiles_filtered{
+      position = p,
+      radius = 5,
+      limit = 70,
+      collision_mask = 'ground-tile'
+    }
+    if #tiles > 60 then
+      if surface.count_entities_filtered{position = p, radius = 5, type = 'cliff' } == 0
+        and surface.count_entities_filtered{position = p, radius = 5, type = 'wall' } == 0
+        and surface.count_entities_filtered{position = p, radius = 5, type = 'car' } == 0
+        then
+        valid = true
       end
-      try = try + 1
     end
+    try = try + 1
+    
     if try > 20 and not valid then
       valid = true
     end

@@ -83,6 +83,7 @@ Tank_spawn.spawn = function(player)
   if Const.tank_health then
     tank.health = Const.tank_health --빠른 킬 테스트용
   end
+  if player.character then player.character_inventory_slots_bonus = 30 end
   tank.set_driver(player)
   Balance.starting_consumables(player)
 
@@ -94,30 +95,12 @@ Tank_spawn.spawn = function(player)
 
   --아머 만들어서 모듈넣어주기
   Balance.starting_armor(player)
-
-  --퀵바 초기화
-  player.set_quick_bar_slot(1, 'cannon-shell')
-  player.set_quick_bar_slot(2, 'explosive-cannon-shell')
-  player.set_quick_bar_slot(3, 'uranium-rounds-magazine')
-  player.set_quick_bar_slot(4, 'piercing-rounds-magazine')
-  player.set_quick_bar_slot(5, 'firearm-magazine')
-  player.set_quick_bar_slot(6, 'destroyer-capsule')
-  player.set_quick_bar_slot(7, 'distractor-capsule')
-  player.set_quick_bar_slot(8, 'defender-capsule')
-  player.set_quick_bar_slot(10, 'repair-pack')
-  player.set_quick_bar_slot(20, 'construction-robot')
-  player.set_quick_bar_slot(11, 'uranium-cannon-shell')
-  player.set_quick_bar_slot(12, 'explosive-uranium-cannon-shell')
-  player.set_quick_bar_slot(13, 'slowdown-capsule')
-  player.set_quick_bar_slot(14, 'discharge-defense-remote')
-  player.set_quick_bar_slot(15, 'poison-capsule')
-  player.set_quick_bar_slot(16, 'cluster-grenade')
-  player.set_quick_bar_slot(17, 'grenade')
 end
 
 Tank_spawn.despawn = function(player)
   local PDB = DB.players_data[player.name]
   if player.vehicle then
+    Util.save_quick_bar(player, player.vehicle.name)
     if player.vehicle.get_health_ratio() < 0.9 then
       if player.surface.index == 1 then
         if PDB then
@@ -129,13 +112,33 @@ Tank_spawn.despawn = function(player)
   end
 end
 
---[[
-Tank_spawn.eject_driver = function(player)
-  if player.vehicle then
-    player.vehicle.set_driver(nil)
-    player.vehicle.set_passenger(nil)
-    player.vehicle.force = 'enemy'
+Tank_spawn.periodic_fuel_refill_ffa = function()
+  local cars = game.surfaces[1].find_entities_filtered{type = {'car', 'locomotive'}}
+  local inv, insertable = nil, 0
+  for _, car in pairs(cars) do
+    inv = car.get_fuel_inventory()
+    insertable = inv.get_insertable_count('solid-fuel')
+    if insertable > 0 then inv.insert{name = 'solid-fuel', count = insertable} end
   end
-end--]]
+end
+
+local buildable = {
+  ['locomotive'] = false,
+  ['artillery-wagon'] = false,
+  ['car'] = true,
+  ['tank'] = true,
+  ['spidertron'] = true,
+}
+Tank_spawn.on_built_entity = function(event)
+  local player = game.players[event.player_index]
+  local old = player.vehicle
+  if not old then return end
+  local vehicle = event.created_entity
+  if not buildable[vehicle.name] then return end
+  Util.save_quick_bar(player, old.name)
+  old.die('player')
+  vehicle.set_driver(player)
+  Balance.starting_consumables(player)
+end
 
 return Tank_spawn

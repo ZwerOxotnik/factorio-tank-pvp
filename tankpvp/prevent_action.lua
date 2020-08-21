@@ -11,7 +11,7 @@ Prevent_action.disable_some_game_view_settings = function(player)
   player.minimap_enabled = false
   player.game_view_settings.show_minimap = false
   player.game_view_settings.show_research_info = false
-  player.game_view_settings.show_shortcut_bar = false
+  --player.game_view_settings.show_shortcut_bar = false
   player.game_view_settings.show_side_menu = false
   player.game_view_settings.show_alert_gui = false
 end

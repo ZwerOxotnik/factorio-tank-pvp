@@ -89,7 +89,7 @@ Game_var.on_player_created = function(event)
     tdm_damage_dealt = 0, --팀데스매치 데미지 딜량
     tdm_capture = 0, --팀데스매치 점령점수
     tdm_recover = 0, --팀데스매치 수비점수
-    last_logout = 0, --로그아웃 틱
+    quick_bars = {}, --엔티티 네임 별 퀵바. ['tank'] 등
   }
   Util.save_personal_color(player)
 end
@@ -779,6 +779,7 @@ Game_var.go_return_ffagame = function(player)
 
   if player.vehicle then
     if DB.team_game_end_tick then
+      Util.save_quick_bar(player, player.vehicle.name)
       player.vehicle.set_driver(nil)
     else
       return

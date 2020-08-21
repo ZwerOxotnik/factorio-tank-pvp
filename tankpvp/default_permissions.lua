@@ -13,7 +13,6 @@ local default_group = function(id)
   pgroup.set_allows_action(defines.input_action.open_logistic_gui, false)
   pgroup.set_allows_action(defines.input_action.open_bonus_gui, false)
   pgroup.set_allows_action(defines.input_action.open_achievements_gui, false)
-  pgroup.set_allows_action(defines.input_action.set_entity_color, false)
   pgroup.set_allows_action(defines.input_action.paste_entity_settings, false)
   pgroup.set_allows_action(defines.input_action.fast_entity_transfer, false)
 
@@ -59,18 +58,19 @@ end
 
 local default = function()
   default_group(0) --Default 그룹
-
   --개인으로 관전하는 그룹
   game.permissions.create_group('ffa_spec')
   default_group('ffa_spec')
   game.permissions.get_group('ffa_spec').set_allows_action(defines.input_action.start_walking, false)
   game.permissions.get_group('ffa_spec').set_allows_action(defines.input_action.change_riding_state, false)
   game.permissions.get_group('ffa_spec').set_allows_action(defines.input_action.change_shooting_state, false)
+  game.permissions.get_group('ffa_spec').set_allows_action(defines.input_action.set_entity_color, false)
 
   --팀전 진행중 그룹
   game.permissions.create_group('fix_color')
   default_group('fix_color')
   game.permissions.get_group('fix_color').set_allows_action(defines.input_action.set_player_color, false)
+  game.permissions.get_group('fix_color').set_allows_action(defines.input_action.set_entity_color, false)
 
   --팀전에서 사망 후 관전하는 그룹
   game.permissions.create_group('fc_standby')
@@ -79,6 +79,7 @@ local default = function()
   game.permissions.get_group('fc_standby').set_allows_action(defines.input_action.start_walking, false)
   game.permissions.get_group('fc_standby').set_allows_action(defines.input_action.change_riding_state, false)
   game.permissions.get_group('fc_standby').set_allows_action(defines.input_action.change_shooting_state, false)
+  game.permissions.get_group('fc_standby').set_allows_action(defines.input_action.set_entity_color, false)
 end
 
 local frozen_group = function(id)
