@@ -2,7 +2,7 @@
 local Const = {}
 
 --testmode를 0, false, nil을 하면 꺼지고, 1, true를 하면 가동
-local testmode = 0
+local testmode = 1
 local test_redefine = function()
 --test--------------------------
 --Const.tank_health = 200 --빠른 킬 테스트용, --기본은 코멘트처리
@@ -10,7 +10,7 @@ Const.no_eliminate_lose = true
 Const.ffa_radius = 50
 Const.ffa_min_fieldr = 25
 Const.ffa_max_fieldr = 55
-Const.min_people_tdm = 2
+Const.min_people_tdm = 1
 Const.team_start_cntdn_max = 600
 Const.team_start_cntdn_min = 600
 Const.team_game_standby_time = 300

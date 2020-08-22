@@ -31,7 +31,7 @@ Damaging.on_entity_damaged = function(event)
   if not types[event.entity.type] then return end
 
   --팀전 승패 결정시 죽지않음
-  if DB and event.entity.surface.index ~= 1 then
+  if DB and event.entity.surface.index > 2 then
     if DB.team_game_win_state then
       event.entity.health = event.final_health + event.final_damage_amount
       return

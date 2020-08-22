@@ -77,7 +77,7 @@ local on_tick = function()
     local percent = (t / (t + f))
 
     --nauvis가 아닌 경우(팀전 맵)
-    if surface.index ~= 1 then
+    if surface.index > 2 then
       for _, player in pairs(game.connected_players) do
         Gui.loading_team_chunks(player, percent, LCDB.surface_name)
       end
@@ -271,7 +271,7 @@ local on_player_joined_game = function(event)
   Prevent_action.disable_some_game_view_settings(player)
   DB.zoom_world_queue[playername] = nil
   player.spectator = false
-  if mode == Const.defines.player_mode.team and player.surface.index ~= 1 then
+  if mode == Const.defines.player_mode.team and player.surface.index > 2 then
     local force = Util.get_player_team_force(playername)
     if force == 'player' then
       Game_var.remove_character(player.index)
@@ -431,6 +431,7 @@ local on_player_toggled_map_editor = function(event)
   if player.controller_type ~= defines.controllers.editor then
     if player.surface.index == 1 then
       Game_var.player_spawn_in_ffa(playername, true)
+    elseif player.surface.index == 2 then
     else
       player.color = Util.get_personal_color(player)
       DB.players_data[playername].player_mode = Const.defines.player_mode.whole_team_spectator
