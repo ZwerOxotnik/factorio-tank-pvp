@@ -116,7 +116,7 @@ Commands.set_damage_mod = function(data)
     end
     mod = string.format("%+.1f",mod*100):gsub("%.?0+$","")
     game.print{"notice_sdm",ammo,mod,pname}
-    localised_print{"",string.format("%.3f",game.tick/60),' [COMMAND] /sdm used. "',ammo,'" damage set to ',mod,pname}
+    localised_print{"",string.format("%.3f",game.tick/60),' [COMMAND] /sdm used. "',ammo,'" damage set to ',mod,'% by ',pname}
   else
     if not player then log{"",'\n[WARNING] /sdm failed. Wrong parameter.'}
     else player.print{"wrong_parameter"} end
@@ -135,12 +135,12 @@ Commands.get_damage_mod = function(data)
     end
     game.players[data.player_index].print(report)
   else
-    local report = 'damage modifiers = '
+    local report = string.format("%.3f",game.tick/60)..' [PRINT] damage modifiers = '
     local force = game.forces['player']
     for i, ammo in ipairs(Const.ammo_categories) do
       report = report..i..'.'..ammo..'='..string.format("%.4f",force.get_ammo_damage_modifier(ammo)):gsub("%.?0+$","")..' , '
     end
-    localised_print(server_report)
+    localised_print(report)
   end
 end
 
@@ -189,12 +189,12 @@ Commands.get_fire_rate_mod = function(data)
     end
     game.players[data.player_index].print(report)
   else
-    local report = 'fire rate modifiers = '
+    local report = string.format("%.3f",game.tick/60)..' [PRINT] fire rate modifiers = '
     local force = game.forces['player']
     for i, ammo in ipairs(Const.ammo_categories) do
       report = report..i..'.'..ammo..'='..string.format("%.4f",force.get_gun_speed_modifier(ammo)):gsub("%.?0+$","")..' , '
     end
-    localised_print(server_report)
+    localised_print(report)
   end
 end
 

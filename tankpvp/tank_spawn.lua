@@ -83,7 +83,10 @@ Tank_spawn.spawn = function(player)
   if Const.tank_health then
     tank.health = Const.tank_health --빠른 킬 테스트용
   end
-  if player.character then player.character_inventory_slots_bonus = 30 end
+  if player.character then
+    player.character_inventory_slots_bonus = 30
+    player.character_loot_pickup_distance_bonus = 2
+  end
   tank.set_driver(player)
   Balance.starting_consumables(player)
 
@@ -139,6 +142,18 @@ Tank_spawn.on_built_entity = function(event)
   old.die('player')
   vehicle.set_driver(player)
   Balance.starting_consumables(player)
+
+  --탱크에 물건넣기 차단
+  local trunk = vehicle.get_inventory(defines.inventory.car_trunk)
+  for i = 1, #trunk do
+    trunk.set_filter(i, 'cut-paste-tool')
+  end
+  if vehicle.type == 'spider-vehicle' then
+    vehicle.vehicle_automatic_targeting_parameters = {
+      auto_target_without_gunner = true,
+      auto_target_with_gunner = false,
+    }
+  end
 end
 
 return Tank_spawn

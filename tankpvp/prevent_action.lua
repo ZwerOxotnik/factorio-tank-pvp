@@ -119,6 +119,12 @@ Prevent_action.on_gui_opened = function(event)
   if event.gui_type ~= defines.gui_type.entity then return end
   if event.entity.type == 'car' then
     player.opened = nil
+  elseif event.entity.type == 'spider-vehicle' then
+    player.opened = nil
+    vehicle.vehicle_automatic_targeting_parameters = {
+      auto_target_without_gunner = true,
+      auto_target_with_gunner = false,
+    }
   elseif event.entity.type == 'locomotive' then
     player.opened = nil
     local train = event.entity.train

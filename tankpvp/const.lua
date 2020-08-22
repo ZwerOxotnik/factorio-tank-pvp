@@ -10,10 +10,11 @@ Const.no_eliminate_lose = true
 Const.ffa_radius = 50
 Const.ffa_min_fieldr = 25
 Const.ffa_max_fieldr = 55
-Const.min_people_tdm = 1
+Const.min_people_tdm = 2
 Const.team_start_cntdn_max = 600
 Const.team_start_cntdn_min = 600
 Const.team_game_standby_time = 300
+Const.supply_drop_interval = 120
 --test-end----------------------
 end
 
@@ -45,8 +46,9 @@ Const.team_map_height_min = 250 --팀 데스매치 맵 최소높이 250
 Const.team_map_width_per = 4 --팀 데스매치 맵 사람당 추가폭 4
 Const.team_map_height_per = 5 --팀 데스매치 맵 사람당 추가높이 5
 Const.recover_capture_per_hit = 0.001 --타격당 감소시키는 점령수치(점령은 0.0~1.0)
-Const.offline_limit = 30.0 --(Hour) 오프라인 이후 삭제까지 걸리는 시간(1시간=216000, 30시간=6480000)
+Const.offline_limit = 30.0 --(Hour) 오프라인 이후 삭제까지 걸리는 시간
 Const.ffa_reset_interval = 6 --(Hour)
+Const.supply_drop_interval = 1200
 Const.team_defines = {
   [1] = {
     index = 1,

@@ -384,4 +384,31 @@ Util.load_quick_bar = function(player, vehiclename)
   end
 end
 
+--Damage --https://wiki.factorio.com/Damage#Resistance
+-- on_entity_damaged이벤트에서 사용시
+--  Util.recalculate_final_damage(event.entity.prototype, event.original_damage_amount, event.damage_type.name)
+Util.recalculate_final_damage = function(entity_prototype, original_damage, damage_type_name)
+  if entity_prototype.resistances then
+    if entity_prototype.resistances[damage_type_name] then
+      local rd = entity_prototype.resistances[damage_type_name].decrease
+      local rp = entity_prototype.resistances[damage_type_name].percent
+      if rd + 1 < original_damage then
+        return (original_damage - rd) * (1 - rp)
+      elseif original_damage > 1 then
+        return 1 / (rd-original_damage + 2) * (1 - rp)
+      else
+        return 1 / (rd + 1) * (1 - rp)
+      end
+    end
+  end
+  return original_damage
+end
+
+--프로토타입 등록 : 아무데서나 호출해서 정보를 읽을 수 있도록 쓰이는 몇가지만
+Util.register_entity_prototype = function(name)
+  local entity = game.surfaces[1].create_entity{name = name, force = 'player', position = {0,0}}
+  global.tankpvp_.prototypes[name] = entity.prototype
+  entity.destroy()
+end
+
 return Util

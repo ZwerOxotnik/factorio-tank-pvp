@@ -16,7 +16,7 @@ local damageable_spider_leg = {}
 -- damageable-spider-leg lua module
 
 local debugging = false
-local damage_modifier = 1/8
+local damage_modifier = 1/4
 
 local register_spider = function(entity)
   if not entity then return end

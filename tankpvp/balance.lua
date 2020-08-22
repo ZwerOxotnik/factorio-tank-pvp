@@ -14,9 +14,9 @@ Balance.init = function()
   force.set_ammo_damage_modifier('flamethrower', 1.85)
   force.set_ammo_damage_modifier('landmine', -0.35)
   force.set_ammo_damage_modifier('grenade', 1.9)
-  force.set_ammo_damage_modifier('rocket', -0.40)
+  force.set_ammo_damage_modifier('rocket', -0.35)
   force.set_gun_speed_modifier('cannon-shell', -0.1)
-  force.set_gun_speed_modifier('rocket', 1.75)
+  force.set_gun_speed_modifier('rocket', 0.25)
   Util.copypaste_weapon_modifiers('player','enemy')
   Util.copypaste_weapon_modifiers('player','neutral')
 end
@@ -96,20 +96,20 @@ Balance.starting_consumables = function(player)
     local grid = vehicle.grid
     local batt = nil
     if grid then
-      batt = grid.put{name = 'exoskeleton-equipment'}
-      batt.energy = batt.max_energy
-      for i = 1, 4 do
+      --batt = grid.put{name = 'exoskeleton-equipment'}
+      --batt.energy = batt.max_energy
+      for i = 1, 2 do
         batt = grid.put{name = 'battery-mk2-equipment'}
         batt.energy = batt.max_energy
       end
-      for i = 1, 9 do
-        batt = grid.put{name = 'energy-shield-mk2-equipment'}
+      for i = 1, 10 do
+        batt = grid.put{name = 'energy-shield-equipment'}
         batt.energy = batt.max_energy
         batt.shield = batt.max_shield
       end
       batt = grid.put{name = 'personal-laser-defense-equipment'}
       batt.energy = batt.max_energy
-      for i = 1, 4 do
+      for i = 1, 3 do
         grid.put{name = 'solar-panel-equipment'}
       end
     end
@@ -218,121 +218,136 @@ local random_containers = {
     weight = 60,
     stuff = {
       ['cannon-shell'] = {chance = 1, count = 3},
-      ['piercing-rounds-magazine'] = {chance = 0.8, count = 100},
-      ['cannon-shell'] = {chance = 0.8, count = 50},
-      ['flamethrower-ammo'] = {chance = 0.4, count = 40},
+      ['piercing-rounds-magazine'] = {chance = 0.8, count = 10},
+      ['cannon-shell'] = {chance = 0.8, count = 20},
+      ['flamethrower-ammo'] = {chance = 0.4, count = 20},
       ['explosive-cannon-shell'] = {chance = 0.4, count = 10},
-      ['rocket'] = {chance = 0.5, count = 40},
-      ['grenade'] = {chance = 0.6, count = 30},
-    }
+      ['rocket'] = {chance = 0.5, count = 5},
+      ['grenade'] = {chance = 0.6, count = 3},
+      ['repair-pack'] = {chance = 0.2, count = 1},
+      ['construction-robot'] = {chance = 0.2, count = 1},
+    },
+    mob_tier = 1
   },
   {
     name = 'iron-chest',
     weight = 30,
     stuff = {
       ['explosive-cannon-shell'] = {chance = 1, count = 2},
-      ['piercing-rounds-magazine'] = {chance = 0.3, count = 200},
-      ['uranium-rounds-magazine'] = {chance = 0.3, count = 5},
-      ['cannon-shell'] = {chance = 0.6, count = 100},
+      ['piercing-rounds-magazine'] = {chance = 0.3, count = 20},
+      ['uranium-rounds-magazine'] = {chance = 0.3, count = 10},
+      ['cannon-shell'] = {chance = 0.6, count = 50},
       ['explosive-cannon-shell'] = {chance = 0.6, count = 20},
-      ['flamethrower-ammo'] = {chance = 0.5, count = 100},
-      ['rocket'] = {chance = 0.6, count = 120},
-      ['explosive-rocket'] = {chance = 0.3, count = 50},
-      ['grenade'] = {chance = 0.5, count = 60},
+      ['flamethrower-ammo'] = {chance = 0.5, count = 50},
+      ['rocket'] = {chance = 0.6, count = 20},
+      ['explosive-rocket'] = {chance = 0.3, count = 20},
+      ['grenade'] = {chance = 0.5, count = 15},
       ['cluster-grenade'] = {chance = 0.3, count = 5},
-      ['uranium-cannon-shell'] = {chance = 0.2, count = 50},
-      ['explosive-uranium-cannon-shell'] = {chance = 0.15, count = 10},
-      ['slowdown-capsule'] = {chance = 0.5, count = 30},
-      ['defender-capsule'] = {chance = 0.4, count = 20},
-    }
+      ['uranium-cannon-shell'] = {chance = 0.2, count = 20},
+      ['explosive-uranium-cannon-shell'] = {chance = 0.15, count = 5},
+      ['slowdown-capsule'] = {chance = 0.5, count = 5},
+      ['defender-capsule'] = {chance = 0.4, count = 10},
+      ['repair-pack'] = {chance = 0.3, count = 2},
+      ['construction-robot'] = {chance = 0.3, count = 2},
+    },
+    mob_tier = 2
   },
   {
     name = 'steel-chest',
     weight = 10,
     stuff = {
       ['explosive-cannon-shell'] = {chance = 1, count = 10},
-      ['uranium-rounds-magazine'] = {chance = 0.5, count = 60},
+      ['uranium-rounds-magazine'] = {chance = 0.5, count = 80},
       ['explosive-cannon-shell'] = {chance = 0.5, count = 80},
-      ['rocket'] = {chance = 0.8, count = 180},
-      ['explosive-rocket'] = {chance = 0.6, count = 80},
-      ['grenade'] = {chance = 0.6, count = 100},
-      ['cluster-grenade'] = {chance = 0.4, count = 15},
+      ['rocket'] = {chance = 0.6, count = 80},
+      ['explosive-rocket'] = {chance = 0.4, count = 80},
+      ['grenade'] = {chance = 0.6, count = 50},
+      ['cluster-grenade'] = {chance = 0.4, count = 20},
       ['uranium-cannon-shell'] = {chance = 0.3, count = 70},
-      ['explosive-uranium-cannon-shell'] = {chance = 0.25, count = 20},
-      ['slowdown-capsule'] = {chance = 0.6, count = 60},
+      ['explosive-uranium-cannon-shell'] = {chance = 0.25, count = 40},
+      ['slowdown-capsule'] = {chance = 0.6, count = 20},
       ['defender-capsule'] = {chance = 0.3, count = 40},
-      ['distractor-capsule'] = {chance = 0.3, count = 30},
-      ['destroyer-capsule'] = {chance = 0.2, count = 20},
+      ['distractor-capsule'] = {chance = 0.3, count = 10},
+      ['destroyer-capsule'] = {chance = 0.2, count = 5},
       ['discharge-defense-remote'] = {chance = 0.1, count = 1},
-      ['repair-pack'] = {chance = 0.3, count = 5},
-      ['construction-robot'] = {chance = 0.3, count = 5},
-    }
+      ['repair-pack'] = {chance = 0.4, count = 3},
+      ['construction-robot'] = {chance = 0.4, count = 3},
+    },
+    mob_tier = 3
   },
   {
     name = 'logistic-chest-active-provider',
     weight = 5,
     stuff = {
-      ['grenade'] = {chance = 1, count = 100},
-      ['cluster-grenade'] = {chance = 1, count = 50},
-      ['slowdown-capsule'] = {chance = 1, count = 50},
-    }
+      ['grenade'] = {chance = 1, count = 30},
+      ['cluster-grenade'] = {chance = 1, count = 60},
+      ['slowdown-capsule'] = {chance = 1, count = 20},
+    },
+    mob_tier = 3
   },
   {
     name = 'logistic-chest-passive-provider',
     weight = 5,
     stuff = {
       ['explosive-cannon-shell'] = {chance = 1, count = 100},
-      ['defender-capsule'] = {chance = 1, count = 100},
-      ['distractor-capsule'] = {chance = 1, count = 30},
-      ['destroyer-capsule'] = {chance = 1, count = 20},
-    }
+      ['defender-capsule'] = {chance = 1, count = 80},
+      ['distractor-capsule'] = {chance = 1, count = 15},
+      ['destroyer-capsule'] = {chance = 1, count = 8},
+    },
+    mob_tier = 4
   },
   {
     name = 'logistic-chest-requester',
-    weight = 5,
+    weight = 7,
     stuff = {
-      ['repair-pack'] = {chance = 1, count = 15},
-      ['construction-robot'] = {chance = 1, count = 15},
-    }
+      ['repair-pack'] = {chance = 1, count = 10},
+      ['construction-robot'] = {chance = 1, count = 10},
+    },
+    mob_tier = 2
   },
   {
     name = 'logistic-chest-storage',
-    weight = 5,
+    weight = 4,
     stuff = {
-      ['rocket'] = {chance = 1, count = 1200},
-      ['explosive-rocket'] = {chance = 1, count = 900},
-    }
+      ['rocket'] = {chance = 1, count = 200},
+      ['explosive-rocket'] = {chance = 1, count = 150},
+    },
+    mob_tier = 4
   },
   {
     name = 'logistic-chest-buffer',
-    weight = 5,
+    weight = 3,
     stuff = {
       ['uranium-rounds-magazine'] = {chance = 1, count = 200},
       ['uranium-cannon-shell'] = {chance = 1, count = 200},
-      ['explosive-uranium-cannon-shell'] = {chance = 1, count = 100},
-      ['atomic-bomb'] = {chance = 1, count = 3},
-    }
+      ['explosive-uranium-cannon-shell'] = {chance = 1, count = 150},
+      ['atomic-bomb'] = {chance = 0.33, count = 2},
+    },
+    mob_tier = 5
   },
   {
     name = 'car',
-    weight = 3,
+    weight = 2,
     stuff = {
       ['car'] = {chance = 1, count = 1},
-    }
+    },
+    mob_tier = 2
   },
   {
     name = 'tank',
     weight = 2,
     stuff = {
       ['tank'] = {chance = 1, count = 1},
-    }
+    },
+    mob_tier = 2
   },
   {
     name = 'spidertron',
     weight = 1,
     stuff = {
       ['spidertron'] = {chance = 1, count = 1},
-    }
+    },
+    mob_tier = 6
   },
 }
 local weight_sum = 0
@@ -390,7 +405,7 @@ end
 local supply_names_at_k = {}
 local supply_names_at_v = {}
 for _, box in pairs(random_containers) do
-  supply_names_at_k[box.name] = true
+  supply_names_at_k[box.name] = box.mob_tier
   table.insert(supply_names_at_v, box.name)
 end
 local breaker_types = {
@@ -402,14 +417,55 @@ local breaker_types = {
   ['spider-vehicle'] = true,
 }
 local mob_pop = {
-  ['small-biter'] = {chance = 0.15, count = 100},
-  ['medium-biter'] = {chance = 0.3, count = 20},
-  ['big-biter'] = {chance = 0.2, count = 8},
-  ['behemoth-biter'] = {chance = 0.1, count = 2},
-  ['small-spitter'] = {chance = 0.2, count = 50},
-  ['medium-spitter'] = {chance = 0.3, count = 20},
-  ['big-spitter'] = {chance = 0.2, count = 8},
-  ['behemoth-spitter'] = {chance = 0.1, count = 2},
+  --인덱스는 mob_tier
+  [1] = {
+    ['small-biter'] = {chance = 0.15, count = 40},
+    ['medium-biter'] = {chance = 0.3, count = 10},
+    ['small-spitter'] = {chance = 0.2, count = 20},
+    ['medium-spitter'] = {chance = 0.3, count = 10},
+  },
+  [2] = {
+    ['small-biter'] = {chance = 0.15, count = 80},
+    ['medium-biter'] = {chance = 0.3, count = 20},
+    ['big-biter'] = {chance = 0.25, count = 4},
+    ['behemoth-biter'] = {chance = 0.05, count = 1},
+    ['small-spitter'] = {chance = 0.15, count = 40},
+    ['medium-spitter'] = {chance = 0.3, count = 20},
+    ['big-spitter'] = {chance = 0.15, count = 4},
+    ['behemoth-spitter'] = {chance = 0.05, count = 1},
+  },
+  [3] = {
+    ['small-biter'] = {chance = 0.1, count = 100},
+    ['medium-biter'] = {chance = 0.2, count = 50},
+    ['big-biter'] = {chance = 0.3, count = 8},
+    ['behemoth-biter'] = {chance = 0.15, count = 2},
+    ['small-spitter'] = {chance = 0.1, count = 50},
+    ['medium-spitter'] = {chance = 0.2, count = 40},
+    ['big-spitter'] = {chance = 0.2, count = 8},
+    ['behemoth-spitter'] = {chance = 0.1, count = 2},
+  },
+  [4] = {
+    ['medium-biter'] = {chance = 0.1, count = 80},
+    ['big-biter'] = {chance = 0.35, count = 15},
+    ['behemoth-biter'] = {chance = 0.3, count = 4},
+    ['medium-spitter'] = {chance = 0.1, count = 60},
+    ['big-spitter'] = {chance = 0.25, count = 10},
+    ['behemoth-spitter'] = {chance = 0.2, count = 3},
+  },
+  [5] = {
+    ['medium-biter'] = {chance = 0.1, count = 100},
+    ['big-biter'] = {chance = 0.4, count = 25},
+    ['behemoth-biter'] = {chance = 0.35, count = 8},
+    ['medium-spitter'] = {chance = 0.1, count = 70},
+    ['big-spitter'] = {chance = 0.3, count = 15},
+    ['behemoth-spitter'] = {chance = 0.25, count = 8},
+  },
+  [6] = {
+    ['big-biter'] = {chance = 0.9, count = 50},
+    ['behemoth-biter'] = {chance = 0.9, count = 16},
+    ['big-spitter'] = {chance = 0.9, count = 35},
+    ['behemoth-spitter'] = {chance = 0.9, count = 16},
+  },
 }
 --보급상자를 부수면 내용물이 떨어진다.
 Balance.on_entity_damaged = function(event)
@@ -482,7 +538,7 @@ Balance.on_entity_damaged = function(event)
     }
   end
   local fpos = nil
-  for name, v in pairs(mob_pop) do
+  for name, v in pairs(mob_pop[supply_names_at_k[event.entity.name]]) do
     if v.chance >= math.random() then
       fpos = box.surface.find_non_colliding_position(name, box.position, 30, 0.2)
       if not fpos then fpos = box.position end
@@ -531,6 +587,32 @@ Balance.on_1200_tick_drop_supply_ffa = function()
     if giveup then break end
     supply = Balance.create_random_supply(surface, p)
   end
+end
+
+--데미지 보정 --Damaging.on_entity_damaged 에서 호출됨.
+Balance.modify_on_entity_damaged = function(event)
+  local DB = global.tankpvp_
+  local entity = event.entity
+  if entity.name == 'car' then
+    if event.final_health > 0 then
+      event.final_health = event.final_health + event.final_damage_amount
+      event.final_damage_amount = Util.recalculate_final_damage(DB.prototypes['tank'], event.original_damage_amount, event.damage_type.name)
+      event.final_health = event.final_health - (event.final_damage_amount * 0.6)
+      if event.final_health < 0 then event.final_health = 0 end
+      entity.health = event.final_health
+    end
+  elseif entity.name == 'tank' then
+    --nothing
+  elseif entity.type == 'spider-vehicle' then
+    event.final_health = event.final_health - event.final_damage_amount * 0.5
+    if event.final_health < 0 then event.final_health = 0 end
+    entity.health = event.final_health
+  elseif entity.type == 'locomotive' or entity.type == 'artillery-wagon' then
+    if event.final_health > 0 then
+      event.final_health = event.final_health + event.final_damage_amount * 0.5
+    end
+  end
+  return event
 end
 
 return Balance

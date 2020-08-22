@@ -2,6 +2,7 @@ local Damaging = {}
 Damaging.event_filters = {}
 
 local Const = require('tankpvp.const')
+local Balance = require('tankpvp.balance')
 
 local DB = nil
 --이하 local 변수는 연산시간을 최대한 줄여보려는...
@@ -36,6 +37,10 @@ Damaging.on_entity_damaged = function(event)
       return
     end
   end
+
+  --데미지 보정
+  event = Balance.modify_on_entity_damaged(event)
+
   local target = event.entity
   if target.force ~= event.cause.force then
     if types[event.cause.type] or event.cause.last_user then

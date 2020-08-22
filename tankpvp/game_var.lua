@@ -66,7 +66,11 @@ Game_var.init = function()
     field_radius = Const.ffa_max_fieldr, --Game_var.redraw_sizing_field 에서 갱신함
     last_ffa_reset = 0,
     reset_ffa_at_next_break = false,
+    prototypes = {},
   }
+  Util.register_entity_prototype('car')
+  Util.register_entity_prototype('tank')
+  Util.register_entity_prototype('spidertron')
 end
 
 Game_var.on_player_created = function(event)
@@ -880,7 +884,11 @@ Game_var.damage_out_of_field = function(refresh_interval_tick)
   for _, vehicle in pairs(vehicles) do
     if vehicle.force.index > 5 then
       if math.sqrt(vehicle.position.x^2 + vehicle.position.y^2) > DB.field_radius then
-        vehicle.damage(10, 'neutral', 'poison')
+        if vehicle.destructible then
+          vehicle.health = vehicle.health - vehicle.prototype.max_health*0.02
+          if vehicle.health <= 0 then vehicle.die() end
+        end
+        --vehicle.damage(10, 'neutral', 'poison')
       end
     end
   end

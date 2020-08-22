@@ -526,13 +526,13 @@ local on_built_entity = function(event)
 end
 
 local on_entity_damaged = function(event)
-  Balance.on_entity_damaged(event)
   Damaging.on_entity_damaged(event)
+  Balance.on_entity_damaged(event)
 end
 do
   local merged_filter = {defines.events.on_entity_damaged, {}}
-  for _, v in pairs(Balance.event_filters.on_entity_damaged[2]) do table.insert(merged_filter[2], v) end
   for _, v in pairs(Damaging.event_filters.on_entity_damaged[2]) do table.insert(merged_filter[2], v) end
+  for _, v in pairs(Balance.event_filters.on_entity_damaged[2]) do table.insert(merged_filter[2], v) end
   event_filters[#event_filters + 1] = merged_filter
 end
 
@@ -554,7 +554,7 @@ Main.on_nth_tick =
 {
   [54000] = Tank_spawn.periodic_fuel_refill_ffa,
   [18000] = Game_var.on_18000_tick,
-  [1200] = Balance.on_1200_tick_drop_supply_ffa,
+  [Const.supply_drop_interval] = Balance.on_1200_tick_drop_supply_ffa,
   [180] = on_nth_tick__f1_chart,
   [60] = Game_var.on_60_tick,
   [29] = Gui.on_29_tick,
