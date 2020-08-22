@@ -2,7 +2,7 @@
 local Const = {}
 
 --testmode를 0, false, nil을 하면 꺼지고, 1, true를 하면 가동
-local testmode = 1
+local testmode = 0
 local test_redefine = function()
 --test--------------------------
 --Const.tank_health = 200 --빠른 킬 테스트용, --기본은 코멘트처리
