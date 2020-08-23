@@ -39,7 +39,10 @@ Const.team_map_height_per = 5 --팀 데스매치 맵 사람당 추가높이 5
 Const.recover_capture_per_hit = 0.001 --타격당 감소시키는 점령수치(점령은 0.0~1.0)
 Const.offline_limit = 30.0 --(Hour) 오프라인 이후 삭제까지 걸리는 시간
 Const.ffa_reset_interval = 6 --(Hour)
+--interval 값은 Main.on_nth_tick에 중복이 없는 걸로 해야 함.
 Const.supply_drop_interval = 1200
+Const.on_18000_tick_interval = 18000
+Const.fuel_refill_invertal = 54000
 Const.team_defines = {
   [1] = {
     index = 1,

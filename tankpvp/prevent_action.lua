@@ -104,7 +104,7 @@ Prevent_action.on_console_command = function(event)
     if not player then return end
     if event.command == 'color' then
       Util.save_personal_color(player)
-      if player.surface.index > 2 and DB.team_game_opened and player.controller_type == defines.controllers.character then
+      if player.surface.index > 1 and player.surface.name ~= 'vault' and DB.team_game_opened and player.controller_type == defines.controllers.character then
         local force = Util.get_player_team_force(player.name)
         if force ~= 'player' then
           player.color = Const.team_defines_key[force].color

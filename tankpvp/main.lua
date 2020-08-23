@@ -77,7 +77,7 @@ local on_tick = function()
     local percent = (t / (t + f))
 
     --nauvis가 아닌 경우(팀전 맵)
-    if surface.index > 2 then
+    if surface.index > 1 and surface.name ~= 'vault' then
       for _, player in pairs(game.connected_players) do
         Gui.loading_team_chunks(player, percent, LCDB.surface_name)
       end
@@ -102,9 +102,7 @@ local on_tick = function()
           playername = player.name
           if DB.players_data[playername].queueing_for_team_game then
             DB.players_data[playername].player_mode = Const.defines.player_mode.team
-            if player.vehicle then --패널티가 있는 Tank_spawn.despawn 대신에 사용
-              player.vehicle.destroy()
-            end
+            Tank_spawn.despawn(player)
             Game_var.player_return_ffa_slot(playername)
             player.teleport({0,0}, surface)
             players[#players + 1] = playername
@@ -115,6 +113,7 @@ local on_tick = function()
           DB.team_game_standby_time = nil
           DB.team_game_opened = nil
           if DB.reset_ffa_at_next_break then
+            Game_var.store_online_vehicles_before_resetffa()
             Terrain.resetffa()
           end
           return
@@ -178,7 +177,7 @@ local on_tick = function()
             PDB.tdm_recover = 0
             player.color = Const.team_defines[i].color
             DB.team_game_players[i][playername] = true
-            Tank_spawn.spawn(player)
+            Tank_spawn.spawn(player, 'tank')
             player.character.allow_dispatching_robots = false
             no_move.add_player(player) --이제 standby시간임. 시간동안 못움직이게 함.
           end
@@ -271,7 +270,7 @@ local on_player_joined_game = function(event)
   Prevent_action.disable_some_game_view_settings(player)
   DB.zoom_world_queue[playername] = nil
   player.spectator = false
-  if mode == Const.defines.player_mode.team and player.surface.index > 2 then
+  if mode == Const.defines.player_mode.team and player.surface.index > 1 and player.surface.name ~= 'vault' then
     local force = Util.get_player_team_force(playername)
     if force == 'player' then
       Game_var.remove_character(player.index)
@@ -328,7 +327,7 @@ local on_player_respawned = function(event)
   --mode는 부활 전에 어딘가에서 설정됨. 예) 죽었을 경우 등
   local mode = DB.players_data[playername].player_mode
   if mode == Const.defines.player_mode.normal then
-    Tank_spawn.spawn(player) --리스폰은 player_spawn_in_ffa을 사용안함
+    Tank_spawn.spawn(player, 'tank') --리스폰은 player_spawn_in_ffa을 사용안함
     player.surface.create_entity{
       name = 'flying-text',
       position = player.position,
@@ -404,6 +403,7 @@ local on_pre_player_toggled_map_editor = function(event)
     if player.surface.index == 1 then
       Tank_spawn.despawn(player)
       Util.save_personal_color(player)
+    elseif player.surface.name == 'vault' then
     elseif player.vehicle then
       Util.save_quick_bar(player, player.vehicle.name)
       player.vehicle.set_driver(nil)
@@ -431,7 +431,7 @@ local on_player_toggled_map_editor = function(event)
   if player.controller_type ~= defines.controllers.editor then
     if player.surface.index == 1 then
       Game_var.player_spawn_in_ffa(playername, true)
-    elseif player.surface.index == 2 then
+    elseif player.surface.name == 'vault' then
     else
       player.color = Util.get_personal_color(player)
       DB.players_data[playername].player_mode = Const.defines.player_mode.whole_team_spectator
@@ -440,6 +440,14 @@ local on_player_toggled_map_editor = function(event)
       Game_var.move_to_outofring(playername)
     end
   end
+end
+
+-- 플레이어를 삭제한 경우. (/admin 등을 이용해서)
+local on_player_removed = function(event)
+  local playername = DB.players_index[event.player_index]
+  Game_var.remove_player_from_ffa_queue(playername)
+  Game_var.remove_player_from_DB(playername)
+  log('\n'..string.format("%.3f",game.tick/60)..' [MANUAL-PLAYER-REMOVE] = '..playername)
 end
 
 -- 플레이어가 나간 경우
@@ -553,8 +561,8 @@ end
 
 Main.on_nth_tick =
 {
-  [54000] = Tank_spawn.periodic_fuel_refill_ffa,
-  [18000] = Game_var.on_18000_tick,
+  [Const.fuel_refill_invertal] = Tank_spawn.periodic_fuel_refill_ffa,
+  [Const.on_18000_tick_interval] = Game_var.on_18000_tick,
   [Const.supply_drop_interval] = Balance.on_1200_tick_drop_supply_ffa,
   [180] = on_nth_tick__f1_chart,
   [60] = Game_var.on_60_tick,
@@ -575,6 +583,9 @@ Main.events =
   -- 운영자가 /editor 커맨드를 사용한 경우
   [defines.events.on_pre_player_toggled_map_editor] = on_pre_player_toggled_map_editor,
   [defines.events.on_player_toggled_map_editor] = on_player_toggled_map_editor,
+
+  -- 플레이어를 삭제한 경우
+  [defines.events.on_player_removed] = on_player_removed,
 
   -- 플레이어가 나간 경우
   [defines.events.on_pre_player_left_game] = on_pre_player_left_game,

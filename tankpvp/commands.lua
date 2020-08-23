@@ -71,6 +71,7 @@ Commands.reset_ffa = function(data)
     log('\n[WARNING] /resetffa failed. During map generation. Can not start another.')
     return
   end
+  Game_var.store_online_vehicles_before_resetffa()
   Terrain.resetffa()
   log('\n[COMMAND] /resetffa used.')
 end

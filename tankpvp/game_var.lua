@@ -41,6 +41,7 @@ Game_var.init = function()
     team_game_queue_force_to_close_game = false, --팀 게임 강제종료
     ffa_queue = {}, --ffa 사람많을 때 큐
     players_data = {}, --플레이어 데이터베이스
+    players_index = {}, --플레이어 데이터베이스_인덱스로 이름을 찾기(on_player_removed 용)
     loading_chunks = { --청크 로딩중?
       surface_name = nil,
       lefttop = {x=nil,y=nil},
@@ -76,10 +77,11 @@ end
 Game_var.on_player_created = function(event)
   local player = game.players[event.player_index]
   local playername = player.name
+  DB.players_index[event.player_index] = playername
   DB.players_data[playername] = {
     current_team_game = nil, --참가한 팀 게임 번호
     personal_color = {0,0,0,0}, --ffa 색상
-    queueing_for_team_game = false, --team게임 참가희망여부
+    queueing_for_team_game = true, --team게임 참가희망여부
     player_mode = Const.defines.player_mode.ffa_spectator, --플레이어 모드
     last_tick_start_queue_for_ffa = game.tick, --ffa에 참가하려고 기다리기 시작한 틱
     mapview_position = {0, 0}, --지도보기 예약위치(관전으로 부활시 사용)
@@ -125,11 +127,17 @@ Game_var.player_spawn_in_ffa = function(playername, fixed_spawn) --리스폰이 
       player.force.set_spawn_position(spawn, game.surfaces[1])
       player.teleport(spawn, game.surfaces[1])
     end
-    Tank_spawn.spawn(player)
+    local vehicle = Tank_spawn.spawn(player, nil)
+    local vehicleimg = ''
+    local vehiclename = '?'
+    if vehicle then
+      vehiclename = vehicle.localised_name
+      vehicleimg = '[img=item/'..vehicle.name..']'
+    end
     player.surface.create_entity{
       name = 'flying-text',
       position = player.position,
-      text = '[font=default-game]TANK IS READY[img=item/tank][/font]',
+      text = {"",'[font=default-game]',vehiclename,' READY',vehicleimg,'[/font]'},
       color = {1, 1, 0, 1},
       render_player_index = player.index
     }
@@ -482,6 +490,7 @@ Game_var.update_team_stat = function(refresh_interval_tick)
         end
       end
       if DB.reset_ffa_at_next_break then
+        Game_var.store_online_vehicles_before_resetffa()
         Terrain.resetffa()
       end
     end
@@ -894,6 +903,20 @@ Game_var.damage_out_of_field = function(refresh_interval_tick)
   end
 end
 
+--DB에서 플레이어 삭제하기
+Game_var.remove_player_from_DB = function(playername)
+  DB.team_game_players[1][playername] = nil
+  DB.team_game_players[2][playername] = nil
+  DB.players_data[playername] = nil
+  for k, name in pairs(DB.players_index) do
+    if name == playername then
+      Tank_spawn.remove_vehicle_in_vault{index = k}
+      DB.players_index[k] = nil
+      break
+    end
+  end
+end
+
 --오래된 오프라인 플레이어 이력 삭제하기
 Game_var.remove_old_offline_player = function()
   local now = game.tick
@@ -910,13 +933,20 @@ Game_var.remove_old_offline_player = function()
   for _, playername in pairs(to_remove) do
     report = report..playername..', '
     Game_var.remove_player_from_ffa_queue(playername)
-    DB.team_game_players[1][playername] = nil
-    DB.team_game_players[2][playername] = nil
-    DB.players_data[playername] = nil
+    Game_var.remove_player_from_DB(playername)
   end
   if #to_remove > 0 then
     game.remove_offline_players(to_remove)
     log('\n'..string.format("%.3f",game.tick/60)..' [AUTO-PLAYER-REMOVE] = '..report)
+  end
+end
+
+--resetffa 직전에 모든 플레이어 차량 저장하기
+Game_var.store_online_vehicles_before_resetffa = function()
+  for _, player in pairs(game.connected_players) do
+    if player.surface.index == 1 then
+      Tank_spawn.despawn(player)
+    end
   end
 end
 
@@ -927,6 +957,7 @@ Game_var.on_18000_tick = function()
     if DB.loading_chunks.is_loading or DB.team_game_opening or DB.team_game_opened or DB.team_game_end_tick or not DB.surface1_initialized then
       DB.reset_ffa_at_next_break = true
     else
+      Game_var.store_online_vehicles_before_resetffa()
       Terrain.resetffa()
     end
   end

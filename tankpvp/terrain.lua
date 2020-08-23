@@ -165,7 +165,7 @@ Terrain.generate_team_map = function(player_count)
 end
 
 Terrain.init = function()
-  game.create_surface('data',{seed=0,width=1,height=1}).generate_with_lab_tiles = true
+  game.create_surface('vault',{seed=0,width=1,height=1}).generate_with_lab_tiles = true
   Terrain.resetffa()
 end
 
@@ -267,7 +267,7 @@ Terrain.on_chunk_generated = function(event)
       end
     end
     surface.set_tiles(filtered_tiles, true, true, true)
-  elseif surface.index == 2 then
+  elseif surface.name == 'vault' then
     return
   else
     local width = surface.map_gen_settings.width

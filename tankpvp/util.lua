@@ -349,8 +349,8 @@ Util.pick_random_in_circle = function(radius)
 end
 
 --Inventory
-Util.dispose_to_make_slot = function(player, nslot)
-  local inv = player.get_main_inventory()
+Util.dispose_to_make_slot = function(player_or_character, nslot)
+  local inv = player_or_character.get_main_inventory()
   local rand = nil
   for i = 1, nslot do
     if inv.count_empty_stacks(true) < nslot then

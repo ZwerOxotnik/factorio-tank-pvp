@@ -102,7 +102,12 @@ Balance.starting_consumables = function(player)
         batt = grid.put{name = 'battery-mk2-equipment'}
         batt.energy = batt.max_energy
       end
-      for i = 1, 10 do
+      for i = 1, 6 do
+        batt = grid.put{name = 'energy-shield-mk2-equipment'}
+        batt.energy = batt.max_energy
+        batt.shield = batt.max_shield
+      end
+      for i = 1, 2 do
         batt = grid.put{name = 'energy-shield-equipment'}
         batt.energy = batt.max_energy
         batt.shield = batt.max_shield

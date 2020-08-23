@@ -157,7 +157,9 @@ local lead_sorter = function(a,b)
   --if a.kills == b.kills then
   --  return a.deaths < b.deaths
   --end
-  return a.kills - a.deaths/2 > b.kills - b.deaths/2
+
+  --return a.kills - a.deaths/2 > b.kills - b.deaths/2
+  return a.kills > b.kills
 end
 Gui.update_lead_content = function()
   local list = {}
@@ -212,7 +214,7 @@ Gui.update_lead_content = function()
         }
       end
       PDB.guis.ffa_frame.visible = true
-    elseif player.surface.index == 2 then
+    elseif player.surface.name == 'vault' then
     else
       PDB.guis.ffa_frame.visible = false
     end
@@ -224,7 +226,7 @@ Gui.update_tqueue_count = function()
   for _, player in pairs(game.connected_players) do
     if player.surface.index == 1 then
       DB.players_data[player.name].guis.ffa_frame.tqueue_count.caption = {"queue-for-team-count", DB.team_game_queue_count}
-    elseif player.surface.index == 2 then
+    elseif player.surface.name == 'vault' then
     else
       DB.players_data[player.name].guis.ffa_frame.visible = false
     end
@@ -373,7 +375,7 @@ Gui.on_player_joined_game = function(event)
     else
       PDB.guis.tcountdn_frame.visible = false
     end
-  elseif player.surface.index == 2 then
+  elseif player.surface.name == 'vault' then
   else
     PDB.guis.ffa_frame.visible = false
     PDB.guis.tdm_frame.visible = true
@@ -481,7 +483,7 @@ Gui.update_team_stat = function()
   for _, player in pairs(game.connected_players) do
     if player.surface.index == 1 then
       ffa_players_cnt = ffa_players_cnt + 1
-    elseif player.surface.index == 2 then
+    elseif player.surface.name == 'vault' then
     elseif DB.players_data[player.name].player_mode == Const.defines.player_mode.team
       or DB.players_data[player.name].player_mode == Const.defines.player_mode.team_spectator
       then
@@ -507,7 +509,7 @@ Gui.update_team_stat = function()
       tspec_ing_frame.visible = false
       tspec_frame.tplay_count.caption = {"playing-team-count", team_players_cnt}
       tspec_frame.tspec_count.caption = {"spectate-team-count", team_spectators_cnt}
-    elseif player.surface.index == 2 then
+    elseif player.surface.name == 'vault' then
     else
       tdm_frame = PDB.guis.tdm_frame
       tdm_frame.visible = true

@@ -31,7 +31,7 @@ Damaging.on_entity_damaged = function(event)
   if not types[event.entity.type] then return end
 
   --팀전 승패 결정시 죽지않음
-  if DB and event.entity.surface.index > 2 then
+  if DB and event.entity.surface.index > 1 and event.entity.surface.name ~= 'vault' then
     if DB.team_game_win_state then
       event.entity.health = event.final_health + event.final_damage_amount
       return
@@ -72,6 +72,7 @@ Damaging.on_entity_damaged = function(event)
           local PDB = DB.players_data[dealer.name]
           if dealer.surface.index == 1 then
             PDB.ffa_damage_dealt = PDB.ffa_damage_dealt + event.final_damage_amount
+          elseif dealer.surface.name == 'vault' then
           else
             if dealer.force.name == team_defines[1].force or dealer.force.name == team_defines[2].force then
               if target.force.name == team_defines[1].force or target.force.name == team_defines[2].force then
