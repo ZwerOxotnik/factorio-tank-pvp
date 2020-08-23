@@ -1,3 +1,4 @@
 *.txt
 blueprint.zip
 script.dat
+_test_*.lua

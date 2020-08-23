@@ -1,22 +1,13 @@
 --상수
 local Const = {}
 
---testmode를 0, false, nil을 하면 꺼지고, 1, true를 하면 가동
-local testmode = 0
-local test_redefine = function()
---test--------------------------
---Const.tank_health = 200 --빠른 킬 테스트용, --기본은 코멘트처리
-Const.no_eliminate_lose = true
-Const.ffa_radius = 50
-Const.ffa_min_fieldr = 25
-Const.ffa_max_fieldr = 55
-Const.min_people_tdm = 1
-Const.team_start_cntdn_max = 600
-Const.team_start_cntdn_min = 600
-Const.team_game_standby_time = 300
-Const.supply_drop_interval = 120
---test-end----------------------
-end
+local _test_ = {sw=nil, f=nil}
+log{"",'\n[loading _test_const] = ',pcall(function(arg)
+  --.gitignore 에서 제외된 테스트 파일. _example_test_const.lua의 이름을 _test_const.lua로 변경.
+  local _ = require('tankpvp/_test_const')
+  arg.sw = _.sw
+  arg.f = _.func
+end, _test_)}
 
 Const.no_eliminate_lose = false --테스트용. 전멸로 패배하지 않음.
 Const.force_limit = 64 --5는 ffa없음, 6으로 하면 혼자 테스트. 최대64(최대59명의 FFA플레이어)
@@ -84,8 +75,9 @@ Const.ammo_categories = {
   'melee', 'railgun', 'rocket', 'shotgun-shell'
 }
 
-if testmode and testmode ~= 0 then
-  test_redefine()
+--테스트
+if _test_.sw and _test_.sw ~= 0 then
+  _test_.f(Const)
 end
 
 return Const
