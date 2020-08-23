@@ -336,6 +336,13 @@ local on_player_respawned = function(event)
       render_player_index = event.player_index
     }
     player.play_sound{path = 'utility/new_objective', volume_modifier = 1}
+    --for _, other in pairs(game.connected_players) do
+    --  if other.surface.index == 1 then
+    --    if other.force ~= player.force and other.force.index ~= 1 and player.force ~= 1 then
+    --      other.print{"multiplayer.player-respawn", playername}
+    --    end
+    --  end
+    --end
   --관전자로 부활.
   elseif mode == Const.defines.player_mode.ffa_spectator
     or mode == Const.defines.player_mode.team_spectator
@@ -379,6 +386,33 @@ local on_player_died = function(event)
       spawn = Terrain.get_ffa_spawn()
       player.force.set_spawn_position(spawn, game.surfaces[1])
       player.ticks_to_respawn = Const.respawn_time
+    end
+    if event.cause and event.cause.valid then
+      local causename = nil
+      if not event.cause.is_player() and event.cause.type == 'character' then
+        if event.cause.player then
+          causename = event.cause.player.name
+        else
+          causename = event.cause.localised_name
+        end
+      else
+        causename = event.cause.localised_name
+      end
+      for _, other in pairs(game.connected_players) do
+        if other.surface.index == 1 then
+          if other.force ~= event.cause.force and event.cause.force ~= player.force and other.force ~= player.force and other.force.index ~= 1 and player.force ~= 1 then
+            other.print({"multiplayer.player-died-by", playername, causename},{1,0.85,0.6,1})
+          end
+        end
+      end
+    else
+      for _, other in pairs(game.connected_players) do
+        if other.surface.index == 1 then
+          if other.force ~= player.force and other.force.index ~= 1 and player.force ~= 1 then
+            other.print({"multiplayer.player-died", playername},{1,0.85,0.6,1})
+          end
+        end
+      end
     end
   --팀 전에서 사망
   elseif mode == Const.defines.player_mode.team then
