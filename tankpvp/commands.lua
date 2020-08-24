@@ -61,7 +61,7 @@ end
 
 --FFA 맵 초기화
 Commands.reset_ffa = function(data)
-  local player = game.players[data.player_index]
+  local player = nil
   if data.player_index then player = game.players[data.player_index] end
   if player then
     if not player.admin then player.print{"not_admin"} return end
@@ -79,7 +79,7 @@ end
 --외치기 한글 자판
 --"/s "를 한글상태에서 입력하면 "/ㄴ "로 나오는데 그냥 쓸 수 있게 해줌.
 Commands.shout_korean = function(data)
-  local player = game.players[data.player_index]
+  local player = nil
   if data.player_index then player = game.players[data.player_index] end
   if not player then return end
   local force = player.force
