@@ -154,12 +154,8 @@ end
 
 --ffa 킬/데스 점수 순위 매기고 표시하기
 local lead_sorter = function(a,b)
-  --if a.kills == b.kills then
-  --  return a.deaths < b.deaths
-  --end
-
-  --return a.kills - a.deaths/2 > b.kills - b.deaths/2
-  return a.kills > b.kills
+  if a.kills == b.kills then return a.deaths < b.deaths
+  else return a.kills > b.kills end
 end
 Gui.update_lead_content = function()
   local list = {}
