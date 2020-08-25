@@ -69,9 +69,12 @@ Game_var.init = function()
     reset_ffa_at_next_break = false,
     prototypes = {},
   }
-  Util.register_entity_prototype('car')
-  Util.register_entity_prototype('tank')
-  Util.register_entity_prototype('spidertron')
+  local register_prototype = function(name)
+    global.tankpvp_.prototypes[name] = game.get_filtered_entity_prototypes{{name = name, filter = 'name'}}[name]
+  end
+  register_prototype('car')
+  register_prototype('tank')
+  register_prototype('spidertron')
 end
 
 Game_var.on_player_created = function(event)

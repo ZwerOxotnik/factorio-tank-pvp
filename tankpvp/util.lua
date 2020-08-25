@@ -404,11 +404,4 @@ Util.recalculate_final_damage = function(entity_prototype, original_damage, dama
   return original_damage
 end
 
---프로토타입 등록 : 아무데서나 호출해서 정보를 읽을 수 있도록 쓰이는 몇가지만
-Util.register_entity_prototype = function(name)
-  local entity = game.surfaces[1].create_entity{name = name, force = 'player', position = {0,0}}
-  global.tankpvp_.prototypes[name] = entity.prototype
-  entity.destroy()
-end
-
 return Util
