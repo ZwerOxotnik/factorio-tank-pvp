@@ -70,7 +70,7 @@ Game_var.init = function()
     prototypes = {},
   }
   local register_prototype = function(name)
-    global.tankpvp_.prototypes[name] = game.get_filtered_entity_prototypes{{name = name, filter = 'name'}}[name]
+    global.tankpvp_.prototypes[name] = game.entity_prototypes[name]
   end
   register_prototype('car')
   register_prototype('tank')
