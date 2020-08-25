@@ -617,6 +617,7 @@ Balance.modify_on_entity_damaged = function(event)
   elseif entity.type == 'locomotive' or entity.type == 'artillery-wagon' then
     if event.final_health > 0 then
       event.final_health = event.final_health + event.final_damage_amount * 0.5
+      entity.health = event.final_health
     end
   end
   return event
