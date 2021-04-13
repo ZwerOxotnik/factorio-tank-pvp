@@ -73,10 +73,10 @@ Const.defines = {
   }
 }
 Const.ammo_categories = {
-  'artillery-shell', 'biological', 'bullet', 'cannon-shell', 'capsule', 'combat-robot-beam',
-  'combat-robot-laser', 'electric', 'flamethrower', 'grenade', 'landmine', 'laser-turret',
-  'melee', 'railgun', 'rocket', 'shotgun-shell'
-}
+  'artillery-shell', 'biological', 'bullet', 'cannon-shell', 'capsule',
+  'electric', 'flamethrower', 'grenade', 'landmine',
+  'melee', 'rocket', 'shotgun-shell'
+} -- TODO: check 'combat-robot-beam' 'combat-robot-laser' 'laser-turret'
 
 --테스트
 if _test_.sw and _test_.sw ~= 0 then
