@@ -63,7 +63,7 @@ Prevent_action.on_player_cursor_stack_changed = function(event)
       if not tank_item_name then
         tank.insert(cursor_stack_to_be_moved)
         player.remove_item(cursor_stack)
-        player.clean_cursor()
+        player.clear_cursor()
       elseif tank_item_name == cursor_item_name then
         local remove_count = tank_stack.prototype.stack_size - tank_stack.count
         if cursor_stack.count >= remove_count then
@@ -73,13 +73,13 @@ Prevent_action.on_player_cursor_stack_changed = function(event)
           tank.insert(cursor_stack_to_be_moved)
           player.remove_item(cursor_stack_to_be_moved)
         end
-        player.clean_cursor()
+        player.clear_cursor()
       else
         local tank_stack_to_be_moved = {name = tank_item_name, count = tank_stack.count}
         inv.remove(tank_stack)
         tank.insert(cursor_stack_to_be_moved)
         player.remove_item(cursor_stack)
-        player.clean_cursor()
+        player.clear_cursor()
         player.insert(tank_stack_to_be_moved)
       end
 
@@ -92,7 +92,7 @@ Prevent_action.on_player_cursor_stack_changed = function(event)
     or cursor_stack.name == 'blueprint-book'
     then
     --alt+d 같은 단축키 방지
-    player.clean_cursor()
+    player.clear_cursor()
   end
 end
 
