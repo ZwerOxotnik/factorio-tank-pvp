@@ -4,15 +4,15 @@ Damaging.event_filters = {}
 local Const = require('tankpvp.const')
 local Balance = require('tankpvp.balance')
 
-local DB = nil
+local __DB = nil
 --이하 local 변수는 연산시간을 최대한 줄여보려는...
-local recover_capture_per_hit = Const.recover_capture_per_hit
-local team_defines = Const.team_defines
-local team_defines_key = Const.team_defines_key
-local capture_radius = Const.capture_radius + 0.707 + 0.004
+local RECOVER_CAPTURE_PER_HIT = Const.recover_capture_per_hit
+local TEAM_DEFINES = Const.team_defines
+local TEAM_DEFINES_KEY = Const.team_defines_key
+local CAPTURE_RADIUS = Const.capture_radius + 0.707 + 0.004
 
 Damaging.on_load = function()
-  DB = global.tankpvp_
+  __DB = storage.tankpvp_
 end
 
 local types = {
@@ -31,8 +31,8 @@ Damaging.on_entity_damaged = function(event)
   if not types[event.entity.type] then return end
 
   --팀전 승패 결정시 죽지않음
-  if DB and event.entity.surface.index > 1 and event.entity.surface.name ~= 'vault' then
-    if DB.team_game_win_state then
+  if __DB and event.entity.surface.index > 1 and event.entity.surface.name ~= 'vault' then
+    if __DB.team_game_win_state then
       event.entity.health = event.final_health + event.final_damage_amount
       return
     end
@@ -69,25 +69,25 @@ Damaging.on_entity_damaged = function(event)
       --딜러 점수 계산
       if dealer and dealer.valid then
         if dealer.force ~= target.force then
-          local PDB = DB.players_data[dealer.name]
+          local PDB = __DB.players_data[dealer.name]
           if dealer.surface.index == 1 then
             PDB.ffa_damage_dealt = PDB.ffa_damage_dealt + event.final_damage_amount
           elseif dealer.surface.name == 'vault' then
           else
-            if dealer.force.name == team_defines[1].force or dealer.force.name == team_defines[2].force then
-              if target.force.name == team_defines[1].force or target.force.name == team_defines[2].force then
-                if DB.team_game_opened and DB.team_game_end_tick == nil then
+            if dealer.force.name == TEAM_DEFINES[1].force or dealer.force.name == TEAM_DEFINES[2].force then
+              if target.force.name == TEAM_DEFINES[1].force or target.force.name == TEAM_DEFINES[2].force then
+                if __DB.team_game_opened and __DB.team_game_end_tick == nil then
                   PDB.tdm_damage_dealt = PDB.tdm_damage_dealt + event.final_damage_amount
                   if event.final_damage_amount > 0.3 then
-                    local surface = game.surfaces[DB.team_game_opened]
+                    local surface = game.surfaces[__DB.team_game_opened]
                     if surface == target.surface then
                       local center = dealer.force.get_spawn_position(surface)
-                      if math.sqrt((target.position.x - center.x)^2 + (target.position.y - center.y)^2) < capture_radius then
-                        local index = team_defines_key[dealer.force.name].index
-                        DB.team_game_capture_progress[index] = DB.team_game_capture_progress[index] - recover_capture_per_hit
-                        PDB.tdm_recover = PDB.tdm_recover + recover_capture_per_hit * 100
-                        if DB.team_game_capture_progress[index] < 0 then
-                          DB.team_game_capture_progress[index] = 0
+                      if math.sqrt((target.position.x - center.x)^2 + (target.position.y - center.y)^2) < CAPTURE_RADIUS then
+                        local index = TEAM_DEFINES_KEY[dealer.force.name].index
+                        __DB.team_game_capture_progress[index] = __DB.team_game_capture_progress[index] - RECOVER_CAPTURE_PER_HIT
+                        PDB.tdm_recover = PDB.tdm_recover + RECOVER_CAPTURE_PER_HIT * 100
+                        if __DB.team_game_capture_progress[index] < 0 then
+                          __DB.team_game_capture_progress[index] = 0
                         end
                       end
                     end

@@ -3,10 +3,10 @@ local Terrain = {}
 local Const = require('tankpvp.const')
 local Util = require('tankpvp.util')
 
-local DB = nil
+local __DB = nil
 
 Terrain.on_load = function()
-  DB = global.tankpvp_
+  __DB = storage.tankpvp_
 end
 
 local ffa_map_gen_settings = function(radius, last_seed)
@@ -78,8 +78,8 @@ Terrain.resetffa = function()
   surface.map_gen_settings = ffa_map_gen_settings(Const.ffa_radius, surface.map_gen_settings.seed)
   surface.clear(false)
   surface.always_day = true
-  DB.reset_ffa_at_next_break = false
-  DB.surface1_initialized = false
+  __DB.reset_ffa_at_next_break = false
+  __DB.surface1_initialized = false
   if game.tick > 2000 then
     game.print{"inform_resetffa_reason_period", Const.ffa_reset_interval}
     log{"",string.format("%.3f",game.tick/60),' [AUTO-RESET] Auto resetffa reason = ', Const.ffa_reset_interval, 'h interval'}
@@ -87,7 +87,7 @@ Terrain.resetffa = function()
 end
 
 Terrain.on_surface_cleared = function(event)
-  local LCDB = DB.loading_chunks
+  local LCDB = __DB.loading_chunks
   --첫 맵이 초기화 된 경우.
   if event.surface_index == 1 then
     local FR = Const.ffa_radius
@@ -132,18 +132,18 @@ local write_capture_wall_pos = function(width, height)
     for xline = wall_line[3][1], wall_line[4][1] do
       wall_pos[#wall_pos + 1] = {x = xline + 0.5, y = wall_line[3][2] + 0.5}
     end
-    DB.team_game_wall_pos[i] = wall_pos
+    __DB.team_game_wall_pos[i] = wall_pos
   end
 end
 
 Terrain.generate_team_map = function(player_count)
-  local LCDB = DB.loading_chunks
+  local LCDB = __DB.loading_chunks
   if LCDB.is_loading then return end
-  DB.team_game_history_count = DB.team_game_history_count + 1
+  __DB.team_game_history_count = __DB.team_game_history_count + 1
   local width = math.floor(Const.team_map_width_min + player_count*Const.team_map_width_per)
   local height = math.floor(Const.team_map_height_min + player_count*Const.team_map_height_per)
   local surface = game.create_surface(
-    'TeamDeathMatch'..tostring(DB.team_game_history_count),
+    'TeamDeathMatch'..tostring(__DB.team_game_history_count),
     team_map_gen_settings(width, height)
   )
   surface.always_day = true
@@ -175,14 +175,14 @@ Terrain.get_ffa_spawn = function()
   local surface = game.surfaces[1]
   local tiles = nil
   local try = 0
-  local radius = DB.field_radius - 1 --Const.ffa_radius
+  local radius = __DB.field_radius - 1 --Const.ffa_radius
   while not valid do
     p = Util.pick_random_in_circle(radius)
     tiles = surface.find_tiles_filtered{
       position = p,
       radius = 5,
       limit = 70,
-      collision_mask = 'ground-tile'
+      collision_mask = 'ground_tile'
     }
     if #tiles > 60 then
       if surface.count_entities_filtered{position = p, radius = 5, type = 'cliff' } == 0
@@ -232,7 +232,7 @@ Terrain.get_team_spreaded_spawn = function(team_index, surface)
       position = p,
       radius = 5,
       limit = 70,
-      collision_mask = 'ground-tile'
+      collision_mask = 'ground_tile'
     }
     if #tiles > 60 then
       if surface.count_entities_filtered{position = p, radius = 5, type = 'cliff' } == 0
@@ -300,7 +300,7 @@ Terrain.on_chunk_generated = function(event)
       for _, e in pairs(entities) do
         e.destroy()
       end
-      for _, p in pairs(DB.team_game_wall_pos[i]) do
+      for _, p in pairs(__DB.team_game_wall_pos[i]) do
         if p.x < event.area.right_bottom.x
           and p.x >= event.area.left_top.x
           and p.y < event.area.right_bottom.y

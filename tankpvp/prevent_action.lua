@@ -27,7 +27,7 @@ local ammo_types = {
   ['flamethrower-ammo'] = 'flame-ammo',
 }
 Prevent_action.on_player_cursor_stack_changed = function(event)
-  local player = game.players[event.player_index]
+  local player = game.get_player(event.player_index)
   if not player.cursor_stack then return end
   if not player.cursor_stack.valid_for_read then return end
   local cursor_stack = player.cursor_stack
@@ -97,10 +97,10 @@ Prevent_action.on_player_cursor_stack_changed = function(event)
 end
 
 Prevent_action.on_console_command = function(event)
-  if not global.tankpvp_ then return end
-  local DB = global.tankpvp_
+  if not storage.tankpvp_ then return end
+  local DB = storage.tankpvp_
   if event.player_index then
-    local player = game.players[event.player_index]
+    local player = game.get_player(event.player_index)
     if not player then return end
     if event.command == 'color' then
       Util.save_personal_color(player)
@@ -120,7 +120,9 @@ Prevent_action.on_console_command = function(event)
 end
 
 Prevent_action.on_gui_opened = function(event)
-  local player = game.players[event.player_index]
+  local player = game.get_player(event.player_index)
+  if not (player and player.valid) then return end
+
   if event.gui_type ~= defines.gui_type.entity then return end
   if event.entity.type == 'car' then
     player.opened = nil
@@ -142,7 +144,9 @@ Prevent_action.on_gui_opened = function(event)
 end
 
 Prevent_action.on_player_driving_changed_state = function(event)
-  local player = game.players[event.player_index]
+  local player = game.get_player(event.player_index)
+  if not (player and player.valid) then return end
+
   local vehicle = event.entity
   if not vehicle then return end
   if not vehicle.valid then return end
@@ -152,8 +156,8 @@ Prevent_action.on_player_driving_changed_state = function(event)
 end
 
 Prevent_action.on_built_entity = function(event)
-  if not event.created_entity then return end
-  local entity = event.created_entity
+  if not event.entity then return end
+  local entity = event.entity
   if entity.name == 'entity-ghost' or entity.name == 'tile-ghost' then
     entity.destroy()
   end

@@ -7,7 +7,7 @@ local Balance = require('tankpvp.balance')
 local DB = nil
 
 Tank_spawn.on_load = function()
-  DB = global.tankpvp_
+  DB = storage.tankpvp_
 end
 
 Tank_spawn.count_team_tanks = function()
@@ -179,10 +179,10 @@ local buildable = {
   ['spidertron'] = true,
 }
 Tank_spawn.on_built_entity = function(event)
-  local player = game.players[event.player_index]
+  local player = game.get_player(event.player_index)
   local old = player.vehicle
   if not old then return end
-  local vehicle = event.created_entity
+  local vehicle = event.entity
   if not buildable[vehicle.name] then return end
   Util.save_quick_bar(player, old.name)
   old.die('player')
@@ -290,7 +290,7 @@ Tank_spawn.summon_vehicle_from_vault = function(player)
         local rails = surface.find_entities_filtered{
           position = loc,
           radius = 500,
-          type = {'straight-rail', 'curved-rail'},
+          type = {'straight-rail', 'legacy-curved-rail'},
         }
         local valid_rails = {}
         for _, r in pairs(rails) do

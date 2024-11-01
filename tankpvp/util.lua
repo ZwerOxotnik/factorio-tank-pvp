@@ -48,8 +48,8 @@ Util.ch_destroy = function(character)
   end
   character.destroy()
   if player then
-    if global.tankpvp_.players_data[player.name].guis.tdmstat_frame.visible then
-      global.tankpvp_.players_data[player.name].guis.tdmstat_frame.visible = false
+    if storage.tankpvp_.players_data[player.name].guis.tdmstat_frame.visible then
+      storage.tankpvp_.players_data[player.name].guis.tdmstat_frame.visible = false
       player.opened = nil
     end
   end
@@ -59,20 +59,20 @@ end
 --player.set_controller{type = defines.controllers.spectator}를 치환
 Util.set_control_spect = function(player)
   player.set_controller{type = defines.controllers.spectator}
-  if global.tankpvp_.players_data[player.name].guis.tdmstat_frame.visible then
-    global.tankpvp_.players_data[player.name].guis.tdmstat_frame.visible = false
+  if storage.tankpvp_.players_data[player.name].guis.tdmstat_frame.visible then
+    storage.tankpvp_.players_data[player.name].guis.tdmstat_frame.visible = false
     player.opened = nil
   end
 end
 
 --Database
 Util.save_personal_color = function(player)
-  global.tankpvp_.players_data[player.name].personal_color = {r=player.color.r,g=player.color.g,b=player.color.b,a=player.color.a}
+  storage.tankpvp_.players_data[player.name].personal_color = {r=player.color.r,g=player.color.g,b=player.color.b,a=player.color.a}
 end
 
 --Database
 Util.get_personal_color = function(player)
-  local color = global.tankpvp_.players_data[player.name].personal_color
+  local color = storage.tankpvp_.players_data[player.name].personal_color
   return {r=color.r,g=color.g,b=color.b,a=color.a}
 end
 
@@ -133,7 +133,7 @@ end
 --플레이어가 팀명단에 있으면 팀세력이름을 출력
 Util.get_player_team_force = function(playername)
   for i = 1, 2 do
-    if global.tankpvp_.team_game_players[i][playername] then
+    if storage.tankpvp_.team_game_players[i][playername] then
       return Const.team_defines[i].force
     end
   end
@@ -162,7 +162,7 @@ end
 
 --Validity
 Util.pcolor = function(playername)
-  local PDB = global.tankpvp_.players_data[playername]
+  local PDB = storage.tankpvp_.players_data[playername]
   if PDB then
     return PDB.personal_color
   else
@@ -193,7 +193,7 @@ local survived_string = function(s)
   end
 end
 Util.opengui_last_team_stat = function(player)
-  local DB = global.tankpvp_
+  local DB = storage.tankpvp_
   local PDB = DB.players_data[player.name]
   local tdmstat_frame = PDB.guis.tdmstat_frame
   local tdmstat_inner = PDB.guis.tdmstat_inner
@@ -303,8 +303,8 @@ end
 Util.insert_spider_remote = function(player, spider)
   if not player then return end
   local inv = game.create_inventory(1)
-  inv.insert{name = 'spidertron-remote', count = 1}
-  local remote = inv.find_item_stack('spidertron-remote')
+  inv.insert{name = 'rts-tool', count = 1}
+  local remote = inv.find_item_stack('rts-tool')
   if spider and spider.valid then
     if spider.name == 'spidertron' then
       remote.connected_entity = spider
@@ -370,10 +370,10 @@ Util.save_quick_bar = function(player, vehiclename)
     slots[i] = player.get_quick_bar_slot(i)
     if slots[i] then slots[i] = slots[i].name end
   end
-  global.tankpvp_.players_data[player.name].quick_bars[vehiclename] = slots
+  storage.tankpvp_.players_data[player.name].quick_bars[vehiclename] = slots
 end
 Util.load_quick_bar = function(player, vehiclename)
-  local slots = global.tankpvp_.players_data[player.name].quick_bars[vehiclename]
+  local slots = storage.tankpvp_.players_data[player.name].quick_bars[vehiclename]
   if slots then
     for i = 1, 20 do
       player.set_quick_bar_slot(i, slots[i])

@@ -123,7 +123,7 @@ Balance.starting_consumables = function(player)
     vehicle.insert{name = 'rocket', count = 200}
     vehicle.insert{name = 'explosive-rocket', count = 200}
     Util.insert_spider_remote(player, vehicle)
-    local remote = player.get_main_inventory().find_item_stack('spidertron-remote')
+    local remote = player.get_main_inventory().find_item_stack('rts-tool')
     Util.dispose_to_make_slot(player, 1)
     player.insert{name = 'grenade', count = 25}
     if not Util.load_quick_bar(player, vehicle.name) then
@@ -149,7 +149,7 @@ Balance.starting_consumables = function(player)
       player.set_quick_bar_slot(19, 'tank')
     else
       for i = 1, 20 do
-        if player.get_quick_bar_slot(i).name == 'spidertron-remote' then
+        if player.get_quick_bar_slot(i).name == 'rts-tool' then
           player.set_quick_bar_slot(i, remote)
           break
         end
@@ -160,12 +160,12 @@ Balance.starting_consumables = function(player)
     Util.dispose_to_make_slot(player, 5)
     vehicle.insert{name = 'solid-fuel', count = 150}
     player.insert{name = 'artillery-wagon', count = 1}
-    player.insert{name = 'artillery-targeting-remote', count = 1}
+    -- player.insert{name = 'artillery-targeting-remote', count = 1} -- TODO: recheck and fix!
     player.insert{name = 'artillery-shell', count = 20}
     player.insert{name = 'grenade', count = 100}
     player.insert{name = 'cluster-grenade', count = 10}
     if not Util.load_quick_bar(player, vehicle.name) then
-      player.set_quick_bar_slot(1, 'artillery-targeting-remote')
+      -- player.set_quick_bar_slot(1, 'artillery-targeting-remote') -- TODO: recheck and fix!
       player.set_quick_bar_slot(2, 'grenade')
       player.set_quick_bar_slot(3, 'cluster-grenade')
       player.set_quick_bar_slot(4, 'slowdown-capsule')
@@ -200,8 +200,8 @@ Balance.starting_armor = function(player)
     local grid = armor.grid
     local batt = nil
     if grid then
-      grid.put{name = 'fusion-reactor-equipment'}
-      grid.put{name = 'fusion-reactor-equipment'}
+      grid.put{name = 'fission-reactor-equipment'}
+      grid.put{name = 'fission-reactor-equipment'}
       batt = grid.put{name = 'personal-roboport-equipment'}
       batt.energy = batt.max_energy
       batt = grid.put{name = 'battery-mk2-equipment'}
@@ -281,7 +281,7 @@ local random_containers = {
     mob_tier = 3
   },
   {
-    name = 'logistic-chest-active-provider',
+    name = 'active-provider-chest',
     weight = 5,
     stuff = {
       ['grenade'] = {chance = 1, count = 30},
@@ -291,7 +291,7 @@ local random_containers = {
     mob_tier = 3
   },
   {
-    name = 'logistic-chest-passive-provider',
+    name = 'passive-provider-chest',
     weight = 5,
     stuff = {
       ['explosive-cannon-shell'] = {chance = 1, count = 100},
@@ -302,7 +302,7 @@ local random_containers = {
     mob_tier = 4
   },
   {
-    name = 'logistic-chest-requester',
+    name = 'requester-chest',
     weight = 7,
     stuff = {
       ['repair-pack'] = {chance = 1, count = 10},
@@ -311,7 +311,7 @@ local random_containers = {
     mob_tier = 2
   },
   {
-    name = 'logistic-chest-storage',
+    name = 'storage-chest',
     weight = 4,
     stuff = {
       ['rocket'] = {chance = 1, count = 200},
@@ -320,7 +320,7 @@ local random_containers = {
     mob_tier = 4
   },
   {
-    name = 'logistic-chest-buffer',
+    name = 'buffer-chest',
     weight = 3,
     stuff = {
       ['uranium-rounds-magazine'] = {chance = 1, count = 200},
@@ -380,13 +380,14 @@ Balance.create_random_supply = function(surface, position)
   if entity.type == 'spider-vehicle' then
     damageable_spider_leg.register_spider(entity)
   end
-  surface.create_entity{
-    name = 'flying-text',
-    position = position,
-    text = {"pop-supply"},
-    color = {1, 1, 0, 1}
-  }
-  surface.play_sound{path = 'utility/rotated_big', position = position, volume_modifier = 1}
+  rendering.draw_text({
+    surface  = surface,
+    target   = position,
+    text  = {"pop-supply"},
+    color = {1, 1, 0, 1},
+    time_to_live = 240
+  })
+  -- surface.play_sound{path = 'utility/rotated_big', position = position, volume_modifier = 1} -- TODO: fix
   entity.operable = false
   entity.orientation = math.random()
   local inv = entity.get_inventory(defines.inventory.car_trunk)
@@ -474,6 +475,19 @@ local mob_pop = {
     ['behemoth-spitter'] = {chance = 0.9, count = 16},
   },
 }
+
+
+local __stack = {name = "", count = 1}
+local __spill_item_stack_param = {
+  position = nil, stack = nil,
+  enable_looted = true, allow_belts = false,
+  force = "neutral"
+}
+local __spill_item_stack_param2 = {
+  position = nil, stack = __stack,
+  enable_looted = true, allow_belts = false,
+  force = "neutral"
+}
 --보급상자를 부수면 내용물이 떨어진다.
 Balance.on_entity_damaged = function(event)
   if event.final_health > 0 then return end
@@ -516,33 +530,38 @@ Balance.on_entity_damaged = function(event)
   local stack = nil
   local taken = false
   if distance and distance < 15 then
-    for item, count in pairs(loots) do
-      stack = {name = item, count = count}
+    for _, item_data in pairs(loots) do
+      local count = item_data.count
+      local item_name = item_data.name
+      stack = {name = item_name, count = count}
       if breaker.can_insert(stack) then
         taken = true
         breaker.insert(stack)
       else
-        box.surface.spill_item_stack(box.position, stack, true, 'neutral', false)
+        __spill_item_stack_param.position = box.position
+        __spill_item_stack_param.stack    = stack
+        box.surface.spill_item_stack(__spill_item_stack_param)
       end
     end
   else
-    for item, count in pairs(loots) do
-      box.surface.spill_item_stack(
-        box.position,
-        {name = item, count = count},
-        true,
-        'neutral',
-        false
-      )
+    for _, item_data in pairs(loots) do
+      local count = item_data.count
+      local item_name = item_data.name
+      __spill_item_stack_param.position = box.position
+      __stack.count = count
+      __stack.item  = item_name
+      box.surface.spill_item_stack(__spill_item_stack_param2)
     end
   end
   if taken then
-    box.surface.create_entity{
-      name = 'flying-text',
-      position = box.position,
-      text = {"supply-took-by", breaker.name},
-      color = {1, 0.8, 0, 1}
-    }
+
+  rendering.draw_text({
+    surface  = box.surface,
+    target   = box.position,
+    text  = {"supply-took-by", breaker.name},
+    color = {1, 0.8, 0, 1},
+    time_to_live = 360
+  })
   end
   local fpos = nil
   for name, v in pairs(mob_pop[supply_names_at_k[event.entity.name]]) do
@@ -565,7 +584,7 @@ Balance.event_filters.on_entity_damaged = {defines.events.on_entity_damaged, dam
 Balance.on_1200_tick_drop_supply_ffa = function()
   local ffa_cnt = 0
   local surface = game.surfaces[1]
-  local radius = global.tankpvp_.field_radius
+  local radius = storage.tankpvp_.field_radius
   local p = nil
   local giveup = false
   local try = 0
@@ -578,7 +597,7 @@ Balance.on_1200_tick_drop_supply_ffa = function()
     try = 0
     while not giveup do
       p = Util.pick_random_in_circle(radius)
-      --if surface.get_tile(p.x, p.y).collides_with('ground-tile') then
+      --if surface.get_tile(p.x, p.y).collides_with('ground_tile') then
         if surface.count_entities_filtered{
             position = p,
             radius = 20,
@@ -598,7 +617,7 @@ end
 
 --데미지 보정 --Damaging.on_entity_damaged 에서 호출됨.
 Balance.modify_on_entity_damaged = function(event)
-  local DB = global.tankpvp_
+  local DB = storage.tankpvp_
   local entity = event.entity
   if entity.name == 'car' then
     if event.final_health > 0 then

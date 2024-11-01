@@ -5,12 +5,12 @@ local default_group = function(id)
   pgroup.set_allows_action(defines.input_action.begin_mining_terrain, false)
   pgroup.set_allows_action(defines.input_action.drop_item, false)
   pgroup.set_allows_action(defines.input_action.take_equipment, false)
-  pgroup.set_allows_action(defines.input_action.smart_pipette, false)
+  pgroup.set_allows_action(defines.input_action.pipette, false) -- TODO: recheck
   pgroup.set_allows_action(defines.input_action.toggle_driving, false)
   pgroup.set_allows_action(defines.input_action.open_production_gui, false)
-  pgroup.set_allows_action(defines.input_action.open_technology_gui, false)
-  --pgroup.set_allows_action(defines.input_action.open_tutorials_gui, false) --TODO: FIX
-  pgroup.set_allows_action(defines.input_action.open_logistic_gui, false)
+  -- pgroup.set_allows_action(defines.input_action.open_technology_gui, false) -- TODO: recheck
+  --pgroup.set_allows_action(defines.input_action.open_tutorials_gui, false) --TODO: recheck
+  -- pgroup.set_allows_action(defines.input_action.open_logistic_gui, false) --TODO: recheck
   pgroup.set_allows_action(defines.input_action.open_bonus_gui, false)
   pgroup.set_allows_action(defines.input_action.open_achievements_gui, false)
   pgroup.set_allows_action(defines.input_action.paste_entity_settings, false)

@@ -4,10 +4,10 @@ local Terrain = require('tankpvp.terrain')
 local Game_var = require('tankpvp.game_var')
 local Const = require('tankpvp.const')
 
-local DB = nil
+local __DB = nil
 
 Commands.on_load = function()
-  DB = global.tankpvp_
+  __DB = storage.tankpvp_
   Terrain.on_load()
   Game_var.on_load()
   commands.add_command('resetffa', {"help_resetffa"}, Commands.reset_ffa)
@@ -30,7 +30,7 @@ end
 --대상 죽이기(탱크 터트리면 주금)
 Commands.kill = function(data)
   local player = nil
-  if data.player_index then player = game.players[data.player_index] end
+  if data.player_index then player = game.get_player(data.player_index) end
   if player then
     if not player.admin then player.print{"not_admin"} return end
   end
@@ -40,7 +40,7 @@ Commands.kill = function(data)
     return
   end
   local name = data.parameter:match( "^%s*(.-)%s*$" )
-  local target = game.players[name]
+  local target = game.get_player(name)
   local online = nil
   if target then online = target.connected end
   if not target and not online then
@@ -62,11 +62,11 @@ end
 --FFA 맵 초기화
 Commands.reset_ffa = function(data)
   local player = nil
-  if data.player_index then player = game.players[data.player_index] end
+  if data.player_index then player = game.get_player(data.player_index) end
   if player then
     if not player.admin then player.print{"not_admin"} return end
   end
-  if DB.loading_chunks.is_loading then
+  if __DB.loading_chunks.is_loading then
     if player then player.print{"during_map_gen"} end
     log('\n[WARNING] /resetffa failed. During map generation. Can not start another.')
     return
@@ -80,7 +80,7 @@ end
 --"/s "를 한글상태에서 입력하면 "/ㄴ "로 나오는데 그냥 쓸 수 있게 해줌.
 Commands.shout_korean = function(data)
   local player = nil
-  if data.player_index then player = game.players[data.player_index] end
+  if data.player_index then player = game.get_player(data.player_index) end
   if not player then return end
   local force = player.force
   local color = player.chat_color
@@ -94,7 +94,7 @@ end
 --데미지 배수 설정
 Commands.set_damage_mod = function(data)
   local player = nil
-  if data.player_index then player = game.players[data.player_index] end
+  if data.player_index then player = game.get_player(data.player_index) end
   local pname = '<server>'
   if player then
     if not player.admin then player.print{"not_admin"} return end
@@ -127,14 +127,14 @@ end
 --데미지 배수 덤핑
 Commands.get_damage_mod = function(data)
   local player = nil
-  if data.player_index then player = game.players[data.player_index] end
+  if data.player_index then player = game.get_player(data.player_index) end
   if player then
     local report = 'damage modifiers = '
     local force = game.forces['player']
     for i, ammo in ipairs(Const.ammo_categories) do
       report = report..i..'.[color=1,0.5,1,1]'..ammo..'[/color]=[color=yellow]'..string.format("%.4f",force.get_ammo_damage_modifier(ammo)):gsub("%.?0+$","")..'[/color] , '
     end
-    game.players[data.player_index].print(report)
+    game.get_player(data.player_index).print(report)
   else
     local report = string.format("%.3f",game.tick/60)..' [PRINT] damage modifiers = '
     local force = game.forces['player']
@@ -148,7 +148,7 @@ end
 --공격속도 배수 설정
 Commands.set_fire_rate_mod = function(data)
   local player = nil
-  if data.player_index then player = game.players[data.player_index] end
+  if data.player_index then player = game.get_player(data.player_index) end
   local pname = '<server>'
   if player then
     if not player.admin then player.print{"not_admin"} return end
@@ -181,14 +181,14 @@ end
 --공격속도 배수 덤핑
 Commands.get_fire_rate_mod = function(data)
   local player = nil
-  if data.player_index then player = game.players[data.player_index] end
+  if data.player_index then player = game.get_player(data.player_index) end
   if player then
     local report = 'fire rate modifiers = '
     local force = game.forces['player']
     for i, ammo in ipairs(Const.ammo_categories) do
       report = report..i..'.[color=1,0.5,1,1]'..ammo..'[/color]=[color=0.25,0.75,1,1]'..string.format("%.4f",force.get_gun_speed_modifier(ammo)):gsub("%.?0+$","")..'[/color] , '
     end
-    game.players[data.player_index].print(report)
+    game.get_player(data.player_index).print(report)
   else
     local report = string.format("%.3f",game.tick/60)..' [PRINT] fire rate modifiers = '
     local force = game.forces['player']
@@ -201,24 +201,24 @@ end
 
 Commands.force_close_team_game = function(data)
   local player = nil
-  if data.player_index then player = game.players[data.player_index] end
+  if data.player_index then player = game.get_player(data.player_index) end
   local pname = '<server>'
   if player then
     if not player.admin then player.print{"not_admin"} return end
     pname = player.name
   end
-  if DB.team_game_opened and not DB.team_game_win_state then
+  if __DB.team_game_opened and not __DB.team_game_win_state then
     game.print{"notice_force-close-team-game",pname}
     localised_print{"",string.format("%.3f",game.tick/60),' [COMMAND] /close-team-game used by ',pname}
-    DB.team_game_queue_force_to_close_game = true
-  elseif DB.team_game_opened and DB.team_game_win_state then
+    __DB.team_game_queue_force_to_close_game = true
+  elseif __DB.team_game_opened and __DB.team_game_win_state then
     if player then player.print('current team game is already closing.') end
     localised_print{"",string.format("%.3f",game.tick/60),' [WARNING] /close-team-game tried by ',pname,', but it is already closing.'}
-    DB.team_game_queue_force_to_close_game = false
+    __DB.team_game_queue_force_to_close_game = false
   else
     if player then player.print('no team game opened.') end
     localised_print{"",string.format("%.3f",game.tick/60),' [WARNING] /close-team-game tried by ',pname,', but no team game opened.'}
-    DB.team_game_queue_force_to_close_game = false
+    __DB.team_game_queue_force_to_close_game = false
   end
 end
 

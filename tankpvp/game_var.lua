@@ -6,19 +6,19 @@ local Const = require('tankpvp.const')
 local Tank_spawn = require('tankpvp.tank_spawn')
 local Util = require('tankpvp.util')
 
-local DB = nil
+local __DB = nil
 
 Game_var.on_load = function()
-  if not global.tankpvp_ then
+  if not storage.tankpvp_ then
     Game_var.init()
   end
-  DB = global.tankpvp_
+  __DB = storage.tankpvp_
   Terrain.on_load()
   Tank_spawn.on_load()
 end
 
 Game_var.init = function()
-  global.tankpvp_ = {
+  storage.tankpvp_ = {
     initialized = false,
     --job_to_start_next_tick = nil, --아래 next_tick이 왔을 때 실행할 작업
     team_game_history_count = 0, --열렸던 팀 게임 횟수
@@ -70,7 +70,7 @@ Game_var.init = function()
     prototypes = {},
   }
   local register_prototype = function(name)
-    global.tankpvp_.prototypes[name] = game.entity_prototypes[name]
+    storage.tankpvp_.prototypes[name] = prototypes.entity[name]
   end
   register_prototype('car')
   register_prototype('tank')
@@ -78,10 +78,12 @@ Game_var.init = function()
 end
 
 Game_var.on_player_created = function(event)
-  local player = game.players[event.player_index]
+  local player = game.get_player(event.player_index)
+  if not (player and player.valid) then return end
+
   local playername = player.name
-  DB.players_index[event.player_index] = playername
-  DB.players_data[playername] = {
+  __DB.players_index[event.player_index] = playername
+  __DB.players_data[playername] = {
     current_team_game = nil, --참가한 팀 게임 번호
     personal_color = {0,0,0,0}, --ffa 색상
     queueing_for_team_game = true, --team게임 참가희망여부
@@ -105,7 +107,7 @@ end
 
 --플레이어의 캐릭터 삭제하고 관전상태로 변경
 Game_var.remove_character = function(pname_or_index)
-  local player = game.players[pname_or_index]
+  local player = game.get_player(pname_or_index)
   player.force = 'player'
   local character = player.character
   if character then
@@ -117,14 +119,14 @@ end
 
 --플레이어 스폰
 Game_var.player_spawn_in_ffa = function(playername, fixed_spawn) --리스폰이 아님
-  local player = game.players[playername]
+  local player = game.get_player(playername)
   local force, forcei = Force.pick_no_one_connected()
   local spawn = {}
   player.force = force
   if forcei > 5 then
     local FR = Const.ffa_radius
     Game_var.remove_player_from_ffa_queue(playername)
-    DB.players_data[playername].player_mode = Const.defines.player_mode.normal
+    __DB.players_data[playername].player_mode = Const.defines.player_mode.normal
     if not fixed_spawn then
       spawn = Terrain.get_ffa_spawn()
       player.force.set_spawn_position(spawn, game.surfaces[1])
@@ -137,13 +139,11 @@ Game_var.player_spawn_in_ffa = function(playername, fixed_spawn) --리스폰이 
       vehiclename = vehicle.localised_name
       vehicleimg = '[img=item/'..vehicle.name..']'
     end
-    player.surface.create_entity{
-      name = 'flying-text',
+    player.create_local_flying_text({
       position = player.position,
-      text = {"",'[font=default-game]',vehiclename,' READY',vehicleimg,'[/font]'},
+      text  = {"",'[font=default-game]',vehiclename,' READY',vehicleimg,'[/font]'},
       color = {1, 1, 0, 1},
-      render_player_index = player.index
-    }
+    })
     player.play_sound{path = 'utility/new_objective', volume_modifier = 1}
     player.force.chart(game.surfaces[1], {{-FR, -FR}, {FR, FR}})
   elseif forcei == 1 then
@@ -155,20 +155,20 @@ end
 --FFA 대기 시작하기
 Game_var.player_start_to_wait_ffa = function(playername)
   local found_in_queue = false
-  for i = 1, #DB.ffa_queue do
-    if DB.ffa_queue[i] == playername then
+  for i = 1, #__DB.ffa_queue do
+    if __DB.ffa_queue[i] == playername then
       found_in_queue = true
       break
     end
   end
-  DB.players_data[playername].player_mode = Const.defines.player_mode.ffa_spectator
+  __DB.players_data[playername].player_mode = Const.defines.player_mode.ffa_spectator
   if not found_in_queue then
-    DB.players_data[playername].last_tick_start_queue_for_ffa = game.tick
-    DB.ffa_queue[#DB.ffa_queue + 1] = playername
+    __DB.players_data[playername].last_tick_start_queue_for_ffa = game.tick
+    __DB.ffa_queue[#__DB.ffa_queue + 1] = playername
   end
   Game_var.remove_character(playername)
-  if not game.players[playername].spectator
-    and not DB.players_data[playername].outofring_reserved
+  if not game.get_player(playername).spectator
+    and not __DB.players_data[playername].outofring_reserved
     then --spectator는 이미 맵뷰 상태인지 체크하는 용도.
     Game_var.remember_position_to_mapview(playername)
     Game_var.move_to_outofring(playername)
@@ -177,9 +177,9 @@ end
 
 --ffa큐에서 플레이어 삭제
 Game_var.remove_player_from_ffa_queue = function(playername)
-  for i, name in ipairs(DB.ffa_queue) do
+  for i, name in ipairs(__DB.ffa_queue) do
     if name == playername then
-      table.remove(DB.ffa_queue, i)
+      table.remove(__DB.ffa_queue, i)
       break
     end
   end
@@ -191,16 +191,17 @@ Game_var.remove_offline_player_from_ffa_queue = function()
   local count = 0
   while removed do
     removed = false
-    for i, name in ipairs(DB.ffa_queue) do
-      if game.players[name] then
-        if not game.players[name].connected then
-          table.remove(DB.ffa_queue, i)
+    for i, name in ipairs(__DB.ffa_queue) do
+      local player = game.get_player(name)
+      if player and player.valid then
+        if not player.connected then
+          table.remove(__DB.ffa_queue, i)
           removed = true
           count = count + 1
           break
         end
       else
-        table.remove(DB.ffa_queue, i)
+        table.remove(__DB.ffa_queue, i)
         removed = true
         count = count + 1
         break
@@ -211,28 +212,30 @@ end
 
 --ffa큐에서 가장 오래 기다린 플레이어 추출
 Game_var.pick_highest_prio_waiting_ffa = function()
-  if #DB.ffa_queue > 0 then
+  if #__DB.ffa_queue > 0 then
     local oldest_tick, oldest_name, chosen_i = -1, 0, 0
     local dupl_name = {}
     local dupl_i = {}
     local rand = nil
-    for i, name in ipairs(DB.ffa_queue) do
-      if not game.players[name].connected or game.players[name].controller_type == defines.controllers.editor then
+    for i, name in ipairs(__DB.ffa_queue) do
+      local player = game.get_player(name)
+      if not player.connected or player.controller_type == defines.controllers.editor then
         --nothing
       elseif oldest_tick < 0 then
-        oldest_tick = DB.players_data[name].last_tick_start_queue_for_ffa
+        oldest_tick = __DB.players_data[name].last_tick_start_queue_for_ffa
         oldest_name = name
         chosen_i = i
-      elseif oldest_tick > DB.players_data[name].last_tick_start_queue_for_ffa then
-        oldest_tick = DB.players_data[name].last_tick_start_queue_for_ffa
+      elseif oldest_tick > __DB.players_data[name].last_tick_start_queue_for_ffa then
+        oldest_tick = __DB.players_data[name].last_tick_start_queue_for_ffa
         oldest_name = name
         chosen_i = i
       end
     end
-    for i, name in ipairs(DB.ffa_queue) do
-      if not game.players[name].connected or game.players[name].controller_type == defines.controllers.editor then
+    for i, name in ipairs(__DB.ffa_queue) do
+      local player = game.get_player(name)
+      if not player.connected or player.controller_type == defines.controllers.editor then
         --nothing
-      elseif oldest_tick == DB.players_data[name].last_tick_start_queue_for_ffa then
+      elseif oldest_tick == __DB.players_data[name].last_tick_start_queue_for_ffa then
         dupl_name[#dupl_name + 1] = name
         dupl_i[#dupl_i + 1] = i
       end
@@ -240,7 +243,7 @@ Game_var.pick_highest_prio_waiting_ffa = function()
     rand = math.random(1, #dupl_i)
     oldest_name = dupl_name[rand]
     chosen_i = dupl_i[rand]
-    table.remove(DB.ffa_queue, chosen_i)
+    table.remove(__DB.ffa_queue, chosen_i)
     return oldest_name --playername
   else
     return nil
@@ -249,7 +252,7 @@ end
 
 --Main의 on_player_left_game에서 호출하고, 여기저기서 초기화할 때 씀
 Game_var.player_left = function(playername)
-  local PDB = DB.players_data[playername]
+  local PDB = __DB.players_data[playername]
   if PDB.player_mode == Const.defines.player_mode.ffa_spectator then
     Game_var.remove_player_from_ffa_queue(playername)
   end
@@ -258,9 +261,9 @@ end
 
 --플레이어가 죽었을 때 ffa슬롯을 반납해야하는가?
 Game_var.player_dead_and_is_have_to_return_slot = function(playername)
-  local PDB = DB.players_data[playername]
+  local PDB = __DB.players_data[playername]
   if PDB.player_mode == Const.defines.player_mode.normal then
-    if #DB.ffa_queue > 0 then
+    if #__DB.ffa_queue > 0 then
       return true
     else
       return false
@@ -273,7 +276,7 @@ end
 --플레이어는 ffa슬롯을 반납한다
 Game_var.player_return_ffa_slot = function(playername)
   local PM = Const.defines.player_mode
-  local mode = DB.players_data[playername].player_mode
+  local mode = __DB.players_data[playername].player_mode
   if mode == PM.normal or mode == PM.ffa_spectator then
     Game_var.player_start_to_wait_ffa(playername)
   elseif mode == PM.team then
@@ -290,8 +293,8 @@ end
 
 --장외로 보낼 때 사용.
 Game_var.remember_position_to_mapview = function(playername)
-  local PDB = DB.players_data[playername]
-  local player = game.players[playername]
+  local PDB = __DB.players_data[playername]
+  local player = game.get_player(playername)
   PDB.mapview_position = player.position
   PDB.mapview_surface_name = player.surface.name
   PDB.outofring_reserved = true
@@ -299,13 +302,13 @@ end
 
 --장외로 보내기 취소
 Game_var.cancel_move_to_outofring = function(playername)
-  local PDB = DB.players_data[playername]
+  local PDB = __DB.players_data[playername]
   PDB.outofring_reserved = false
 end
 
 --zoom_to_world queue bug fix(함수 그냥 쓰면 큐를 안잡고 안되면 걍 안함)
 Game_var.queue_zoom_to_world = function(playername, position, zoom)
-  DB.zoom_world_queue[playername] = {position = position, zoom = zoom}
+  __DB.zoom_world_queue[playername] = {position = position, zoom = zoom}
 end
 
 --장외 위치 얻기
@@ -316,9 +319,9 @@ end
 
 --장외로 보낼 때 사용. 이전에 관전자로 만드는 기능 : Game_var.remember_position_to_mapview 설정 필요.
 Game_var.move_to_outofring = function(playername)
-  local PDB = DB.players_data[playername]
+  local PDB = __DB.players_data[playername]
   if PDB.outofring_reserved then
-    local player = game.players[playername]
+    local player = game.get_player(playername)
     local surface_name = PDB.mapview_surface_name
     local surface = game.surfaces[surface_name]
     if surface then
@@ -345,123 +348,128 @@ end
 Game_var.update_tqueue_count = function()
   local sum = 0
   for _, player in pairs(game.connected_players) do
-    if DB.players_data[player.name].queueing_for_team_game and player.surface.index == 1 then
+    if __DB.players_data[player.name].queueing_for_team_game and player.surface.index == 1 then
       sum = sum + 1
     end
   end
-  DB.team_game_queue_count = sum
+  __DB.team_game_queue_count = sum
   if sum >= Const.min_people_tdm
-    and DB.team_game_standby_time == nil
-    and DB.team_game_remain_time == nil
-    and DB.team_game_end_tick == nil
+    and __DB.team_game_standby_time == nil
+    and __DB.team_game_remain_time == nil
+    and __DB.team_game_end_tick == nil
     then
-    DB.team_game_countdown_time = Const.team_start_cntdn_max - (sum - Const.min_people_tdm) * Const.team_start_cntdn_per
-    if DB.team_game_countdown_time < Const.team_start_cntdn_min then
-      DB.team_game_countdown_time = Const.team_start_cntdn_min
+    __DB.team_game_countdown_time = Const.team_start_cntdn_max - (sum - Const.min_people_tdm) * Const.team_start_cntdn_per
+    if __DB.team_game_countdown_time < Const.team_start_cntdn_min then
+      __DB.team_game_countdown_time = Const.team_start_cntdn_min
     end
   else
-    DB.team_game_countdown_time = nil
+    __DB.team_game_countdown_time = nil
   end
 end
 
+local __set_controller_param = {
+  type = defines.controllers.remote,
+  start_zoom = 1,
+  position = nil,
+  surface = nil
+}
 --주로 카운트다운 용도
 Game_var.on_tick = function()
-  for name, data in pairs(DB.zoom_world_queue) do
-    local player = game.players[name]
-    player.zoom_to_world(data.position, data.zoom)
+  for name, data in pairs(__DB.zoom_world_queue) do
+    local player = game.get_player(name)
+    __set_controller_param.start_zoom = data.zoom
+    __set_controller_param.position   = data.position
+    __set_controller_param.surface    = player.surface
+    player.set_controller(__set_controller_param)
     if player.render_mode ~= defines.render_mode.game then
-      DB.zoom_world_queue[name] = nil
+      __DB.zoom_world_queue[name] = nil
     end
   end
 
-  if DB.team_game_opening or DB.loading_chunks.is_loading then return end
+  if __DB.team_game_opening or __DB.loading_chunks.is_loading then return end
 
   --팀맵 생성 후 시작전까지 카운트
-  if DB.team_game_standby_time ~= nil then
-    if DB.team_game_countup >= DB.team_game_standby_time then
-      local surface = game.surfaces[DB.team_game_opened]
-      DB.team_game_countup = DB.team_game_countup - DB.team_game_standby_time
-      DB.team_game_standby_time = nil
+  if __DB.team_game_standby_time ~= nil then
+    if __DB.team_game_countup >= __DB.team_game_standby_time then
+      local surface = game.surfaces[__DB.team_game_opened]
+      __DB.team_game_countup = __DB.team_game_countup - __DB.team_game_standby_time
+      __DB.team_game_standby_time = nil
       local fc = game.permissions.get_group('fix_color')
       for i = 1, 2 do
-        for player, _ in pairs(DB.team_game_players[i]) do
+        for player, _ in pairs(__DB.team_game_players[i]) do
           fc.add_player(player)
-          player = game.players[player]
+          player = game.get_player(player)
           if player.connected then
-            surface.create_entity{
-              name = 'flying-text',
+            player.create_local_flying_text({
               position = player.position,
-              text = '[font=default-game]GO![img=item/tank][/font]',
+              text  = '[font=default-game]GO![img=item/tank][/font]',
               color = {1, 1, 0, 1},
-              render_player_index = player.index
-            }
+            })
           end
         end
       end
       surface.play_sound{path = 'utility/new_objective', volume_modifier = 1}
-    elseif DB.team_game_countup%60 == 0 then
-      local surface = game.surfaces[DB.team_game_opened]
-      local timer = tostring(math.floor((DB.team_game_standby_time - DB.team_game_countup) / 60))
+    elseif __DB.team_game_countup%60 == 0 then
+      local surface = game.surfaces[__DB.team_game_opened]
+      local timer = tostring(math.floor((__DB.team_game_standby_time - __DB.team_game_countup) / 60))
       timer = '[font=default-game]'..timer..'[/font]'
       for i = 1, 2 do
-        for player, _ in pairs(DB.team_game_players[i]) do
-          player = game.players[player]
+        for player, _ in pairs(__DB.team_game_players[i]) do
+          player = game.get_player(player)
           if player.connected then
-            surface.create_entity{
-              name = 'flying-text',
+            player.create_local_flying_text({
               position = player.position,
-              text = timer,
+              text  = timer,
               color = {0.5, 1, 1, 1},
-              render_player_index = player.index
-            }
+            })
           end
         end
       end
       surface.play_sound{path = 'utility/inventory_move', volume_modifier = 1}
     end
-    DB.team_game_countup = DB.team_game_countup + 1
+    __DB.team_game_countup = __DB.team_game_countup + 1
 
   --팀맵 진행 중 카운트
-  elseif DB.team_game_remain_time ~= nil then
-    DB.team_game_countup = DB.team_game_countup + 1
+  elseif __DB.team_game_remain_time ~= nil then
+    __DB.team_game_countup = __DB.team_game_countup + 1
 
   --팀맵 생성 전까지 카운트
-  elseif DB.team_game_countdown_time ~= nil then
-    DB.team_game_countup = DB.team_game_countup + 1
-    if DB.team_game_countup > DB.team_game_countdown_time then
-      DB.team_game_opening = true
-      DB.team_game_countup = 0
-      Terrain.generate_team_map(DB.team_game_queue_count)
+  elseif __DB.team_game_countdown_time ~= nil then
+    __DB.team_game_countup = __DB.team_game_countup + 1
+    if __DB.team_game_countup > __DB.team_game_countdown_time then
+      __DB.team_game_opening = true
+      __DB.team_game_countup = 0
+      Terrain.generate_team_map(__DB.team_game_queue_count)
     end
 
   else
-    DB.team_game_countup = 0
+    __DB.team_game_countup = 0
   end
 end
 
 --팀 상황 업데이트
 Game_var.update_team_stat = function(refresh_interval_tick)
-  if DB.team_game_opened == nil then return end
+  if __DB.team_game_opened == nil then return end
 
   --팀전 종료 시
-  if DB.team_game_win_state ~= nil then
-    if game.tick > DB.team_game_end_tick then
-      DB.team_game_queue_force_to_close_game = false
-      DB.team_game_countdown_time = nil
-      DB.team_game_remain_time = nil
-      DB.team_game_standby_time = nil
-      local surface = game.surfaces[DB.team_game_opened]
+  if __DB.team_game_win_state ~= nil then
+    if game.tick > __DB.team_game_end_tick then
+      __DB.team_game_queue_force_to_close_game = false
+      __DB.team_game_countdown_time = nil
+      __DB.team_game_remain_time = nil
+      __DB.team_game_standby_time = nil
+      local surface = game.surfaces[__DB.team_game_opened]
       local playername = nil
       local returning_players = {}
       local gametick = game.tick
       for _, player in pairs(game.connected_players) do
         playername = player.name
-        if player.surface.name == DB.team_game_opened then
-          DB.zoom_world_queue[playername] = nil
+        if player.surface.name == __DB.team_game_opened then
+          __DB.zoom_world_queue[playername] = nil
           Util.disable_minimap(player)
           player.teleport({0,0}, game.surfaces[1])
           player.spectator = false
-          DB.players_data[playername].player_mode = Const.defines.player_mode.ffa_spectator
+          __DB.players_data[playername].player_mode = Const.defines.player_mode.ffa_spectator
           Game_var.player_left(playername)
           player.force = 'player'
           player.tag = ''
@@ -470,20 +478,20 @@ Game_var.update_team_stat = function(refresh_interval_tick)
           player.color = Util.get_personal_color(player)
           if player.controller_type ~= defines.controllers.editor then
             Game_var.player_start_to_wait_ffa(playername)
-            DB.players_data[playername].last_tick_start_queue_for_ffa = gametick
+            __DB.players_data[playername].last_tick_start_queue_for_ffa = gametick
             returning_players[playername] = player
           end
-          DB.players_data[playername].guis.tdm_frame.visible = false
-          DB.players_data[playername].guis.tspec_ing_frame.visible = false
-          DB.players_data[playername].guis.ffa_frame.visible = true
-          DB.players_data[playername].guis.tcountdn_frame.visible = false
+          __DB.players_data[playername].guis.tdm_frame.visible = false
+          __DB.players_data[playername].guis.tspec_ing_frame.visible = false
+          __DB.players_data[playername].guis.ffa_frame.visible = true
+          __DB.players_data[playername].guis.tcountdn_frame.visible = false
         end
-        DB.players_data[playername].guis.tspec_frame.visible = false
+        __DB.players_data[playername].guis.tspec_frame.visible = false
       end
-      game.delete_surface(DB.team_game_opened)
-      DB.team_game_opened = nil
-      DB.team_game_win_state = nil
-      DB.team_game_end_tick = nil
+      game.delete_surface(__DB.team_game_opened)
+      __DB.team_game_opened = nil
+      __DB.team_game_win_state = nil
+      __DB.team_game_end_tick = nil
       while Force.find_no_one_connected() do
         local new_player_name = Game_var.pick_highest_prio_waiting_ffa()
         if new_player_name then
@@ -492,7 +500,7 @@ Game_var.update_team_stat = function(refresh_interval_tick)
           break
         end
       end
-      if DB.reset_ffa_at_next_break then
+      if __DB.reset_ffa_at_next_break then
         Game_var.store_online_vehicles_before_resetffa()
         Terrain.resetffa()
       end
@@ -501,10 +509,10 @@ Game_var.update_team_stat = function(refresh_interval_tick)
   end
 
   --남은 탱크 수 업데이트
-  DB.team_game_remained_tanks[1], DB.team_game_remained_tanks[2] = Tank_spawn.count_team_tanks()
+  __DB.team_game_remained_tanks[1], __DB.team_game_remained_tanks[2] = Tank_spawn.count_team_tanks()
 
   --점령 상태 업데이트
-  local surface = game.surfaces[DB.team_game_opened]
+  local surface = game.surfaces[__DB.team_game_opened]
   if surface then
     local win_state = nil
     local force = {game.forces[Const.team_defines[1].force], game.forces[Const.team_defines[2].force]}
@@ -544,8 +552,8 @@ Game_var.update_team_stat = function(refresh_interval_tick)
     local cm = {[1]=0,[2]=0}
     for i = 1, 2 do for _ in pairs(capture_plus[i]) do cp[i] = cp[i] + 1 end end
     for i = 1, 2 do for _ in pairs(capture_minus[i]) do cm[i] = cm[i] + 1 end end
-    DB.team_game_capture_plus = {[1]=cp[1],[2]=cp[2]}
-    DB.team_game_capture_minus = {[1]=cm[1],[2]=cm[2]}
+    __DB.team_game_capture_plus = {[1]=cp[1],[2]=cp[2]}
+    __DB.team_game_capture_minus = {[1]=cm[1],[2]=cm[2]}
     local CL = Const.capture_limit
     if cp[1] > CL then cp[1] = CL end
     if cp[2] > CL then cp[2] = CL end
@@ -558,14 +566,14 @@ Game_var.update_team_stat = function(refresh_interval_tick)
       capture_speed[i] = Const.capture_speed / 6000 * refresh_interval_tick * (cp[i] - cm[i])
     end
     for i = 1, 2 do
-      if DB.team_game_capture_progress[i] + capture_speed[i] > 1 then
+      if __DB.team_game_capture_progress[i] + capture_speed[i] > 1 then
         --capture_speed[i] = 1 - DB.team_game_capture_progress[i]
-        DB.team_game_capture_progress[i] = 1
-      elseif DB.team_game_capture_progress[i] + capture_speed[i] < 0 then
+        __DB.team_game_capture_progress[i] = 1
+      elseif __DB.team_game_capture_progress[i] + capture_speed[i] < 0 then
         --capture_speed[i] = 0 - DB.team_game_capture_progress[i]
-        DB.team_game_capture_progress[i] = 0
+        __DB.team_game_capture_progress[i] = 0
       else
-        DB.team_game_capture_progress[i] = DB.team_game_capture_progress[i] + capture_speed[i]
+        __DB.team_game_capture_progress[i] = __DB.team_game_capture_progress[i] + capture_speed[i]
       end
     end
     local speaker = {}
@@ -592,7 +600,7 @@ Game_var.update_team_stat = function(refresh_interval_tick)
     for i = 1, 2 do
       cp[i] = Const.capture_speed / 6000 * refresh_interval_tick * cp[i]
       cm[i] = Const.capture_speed / 6000 * refresh_interval_tick * cm[i]
-      if cm[i] > cp[i] and DB.team_game_capture_progress[i] == 0 then cm[i] = 0 end
+      if cm[i] > cp[i] and __DB.team_game_capture_progress[i] == 0 then cm[i] = 0 end
     end
     local driver = nil
     for i = 1, 2 do
@@ -601,12 +609,12 @@ Game_var.update_team_stat = function(refresh_interval_tick)
         if driver then
           if driver.name == 'character' then
             if driver.player then
-              DB.players_data[driver.player.name].tdm_capture = DB.players_data[driver.player.name].tdm_capture
-                + cp[i] / DB.team_game_capture_plus[i] * 100
+              __DB.players_data[driver.player.name].tdm_capture = __DB.players_data[driver.player.name].tdm_capture
+                + cp[i] / __DB.team_game_capture_plus[i] * 100
             end
           elseif driver.is_player() then
-            DB.players_data[driver.name].tdm_capture = DB.players_data[driver.name].tdm_capture
-              + cp[i] / DB.team_game_capture_plus[i] * 100
+            __DB.players_data[driver.name].tdm_capture = __DB.players_data[driver.name].tdm_capture
+              + cp[i] / __DB.team_game_capture_plus[i] * 100
           end
         end
       end
@@ -615,44 +623,44 @@ Game_var.update_team_stat = function(refresh_interval_tick)
         if driver then
           if driver.name == 'character' then
             if driver.player then
-              DB.players_data[driver.player.name].tdm_recover = DB.players_data[driver.player.name].tdm_recover
-                + cm[i] / DB.team_game_capture_minus[i] * 100
+              __DB.players_data[driver.player.name].tdm_recover = __DB.players_data[driver.player.name].tdm_recover
+                + cm[i] / __DB.team_game_capture_minus[i] * 100
             end
           elseif driver.is_player() then
-            DB.players_data[driver.name].tdm_recover = DB.players_data[driver.name].tdm_recover
-              + cm[i] / DB.team_game_capture_minus[i] * 100
+            __DB.players_data[driver.name].tdm_recover = __DB.players_data[driver.name].tdm_recover
+              + cm[i] / __DB.team_game_capture_minus[i] * 100
           end
         end
       end
     end
 
     --승패 결정
-    if DB.team_game_remain_time == nil then return end
-    if DB.team_game_queue_force_to_close_game then
+    if __DB.team_game_remain_time == nil then return end
+    if __DB.team_game_queue_force_to_close_game then
       win_state = 'draw'
-      DB.stat_last_win_reason = 'forceclose'
-      DB.team_game_queue_force_to_close_game = false
-    elseif DB.team_game_remained_tanks[1] == 0 and DB.team_game_remained_tanks[2] == 0 and not Const.no_eliminate_lose then
+      __DB.stat_last_win_reason = 'forceclose'
+      __DB.team_game_queue_force_to_close_game = false
+    elseif __DB.team_game_remained_tanks[1] == 0 and __DB.team_game_remained_tanks[2] == 0 and not Const.no_eliminate_lose then
       win_state = 'draw'
-      DB.stat_last_win_reason = 'eliminated'
-    elseif DB.team_game_capture_progress[1] >= 1 and DB.team_game_capture_progress[2] >= 1 then
+      __DB.stat_last_win_reason = 'eliminated'
+    elseif __DB.team_game_capture_progress[1] >= 1 and __DB.team_game_capture_progress[2] >= 1 then
       win_state = 'draw'
-      DB.stat_last_win_reason = 'captured'
-    elseif DB.team_game_remained_tanks[1] == 0 and not Const.no_eliminate_lose then
+      __DB.stat_last_win_reason = 'captured'
+    elseif __DB.team_game_remained_tanks[1] == 0 and not Const.no_eliminate_lose then
       win_state = Const.team_defines[2]
-      DB.stat_last_win_reason = 'eliminated'
-    elseif DB.team_game_remained_tanks[2] == 0 and not Const.no_eliminate_lose then
+      __DB.stat_last_win_reason = 'eliminated'
+    elseif __DB.team_game_remained_tanks[2] == 0 and not Const.no_eliminate_lose then
       win_state = Const.team_defines[1]
-      DB.stat_last_win_reason = 'eliminated'
-    elseif DB.team_game_capture_progress[1] >= 1 then
+      __DB.stat_last_win_reason = 'eliminated'
+    elseif __DB.team_game_capture_progress[1] >= 1 then
       win_state = Const.team_defines[2]
-      DB.stat_last_win_reason = 'captured'
-    elseif DB.team_game_capture_progress[2] >= 1 then
+      __DB.stat_last_win_reason = 'captured'
+    elseif __DB.team_game_capture_progress[2] >= 1 then
       win_state = Const.team_defines[1]
-      DB.stat_last_win_reason = 'captured'
-    elseif DB.team_game_remain_time - DB.team_game_countup < 0 then
+      __DB.stat_last_win_reason = 'captured'
+    elseif __DB.team_game_remain_time - __DB.team_game_countup < 0 then
       win_state = 'draw'
-      DB.stat_last_win_reason = 'timeup'
+      __DB.stat_last_win_reason = 'timeup'
     end
     --승패가 결정난 경우
     if win_state then
@@ -665,19 +673,19 @@ Game_var.update_team_stat = function(refresh_interval_tick)
           game.forces[v.force].play_sound{path = 'utility/game_lost', volume_modifier = 1}
         end
         if math.random(0,1) == 1 then
-          DB.stat_won_players = Util.tablecopy(DB.team_game_players[1])
-          DB.stat_lost_players = Util.tablecopy(DB.team_game_players[2])
-          DB.stat_won_color = Const.team_defines[1].color
-          DB.stat_lost_color = Const.team_defines[2].color
-          DB.stat_won_team_name = Const.team_defines[1].force
-          DB.stat_lost_team_name = Const.team_defines[2].force
+          __DB.stat_won_players  = Util.tablecopy(__DB.team_game_players[1])
+          __DB.stat_lost_players = Util.tablecopy(__DB.team_game_players[2])
+          __DB.stat_won_color      = Const.team_defines[1].color
+          __DB.stat_lost_color     = Const.team_defines[2].color
+          __DB.stat_won_team_name  = Const.team_defines[1].force
+          __DB.stat_lost_team_name = Const.team_defines[2].force
         else
-          DB.stat_won_players = Util.tablecopy(DB.team_game_players[2])
-          DB.stat_lost_players = Util.tablecopy(DB.team_game_players[1])
-          DB.stat_won_color = Const.team_defines[2].color
-          DB.stat_lost_color = Const.team_defines[1].color
-          DB.stat_won_team_name = Const.team_defines[2].force
-          DB.stat_lost_team_name = Const.team_defines[1].force
+          __DB.stat_won_players  = Util.tablecopy(__DB.team_game_players[2])
+          __DB.stat_lost_players = Util.tablecopy(__DB.team_game_players[1])
+          __DB.stat_won_color      = Const.team_defines[2].color
+          __DB.stat_lost_color     = Const.team_defines[1].color
+          __DB.stat_won_team_name  = Const.team_defines[2].force
+          __DB.stat_lost_team_name = Const.team_defines[1].force
         end
       else
         game.print{"team-winner", Util.color2str(win_state.color), win_state.force}
@@ -686,30 +694,31 @@ Game_var.update_team_stat = function(refresh_interval_tick)
         for k, v in pairs(Const.team_defines) do
           if v.force ~= win_state then
             game.forces[v.force].play_sound{path = 'utility/game_lost', volume_modifier = 1}
-            DB.stat_lost_players = Util.tablecopy(DB.team_game_players[k])
-            DB.stat_lost_color = Const.team_defines[k].color
-            DB.stat_lost_team_name = Const.team_defines[k].force
+            __DB.stat_lost_players = Util.tablecopy(__DB.team_game_players[k])
+            __DB.stat_lost_color = Const.team_defines[k].color
+            __DB.stat_lost_team_name = Const.team_defines[k].force
           else
             game.forces[v.force].play_sound{path = 'utility/game_won', volume_modifier = 1}
-            DB.stat_won_players = Util.tablecopy(DB.team_game_players[k])
-            DB.stat_won_color = Const.team_defines[k].color
-            DB.stat_won_team_name = Const.team_defines[k].force
+            __DB.stat_won_players = Util.tablecopy(__DB.team_game_players[k])
+            __DB.stat_won_color = Const.team_defines[k].color
+            __DB.stat_won_team_name = Const.team_defines[k].force
           end
         end
       end
-      DB.team_game_win_state = win_state
-      DB.team_game_end_tick = game.tick + Const.team_end_time
+      __DB.team_game_win_state = win_state
+      __DB.team_game_end_tick = game.tick + Const.team_end_time
       surface.print{"quit-after-time", math.ceil(Const.team_end_time/60)}
-      DB.stat_last_win = win_state
-      DB.stat_last_map_name = DB.team_game_opened
-      DB.stat_last_playtime = DB.team_game_countup
+      __DB.stat_last_win = win_state
+      __DB.stat_last_map_name = __DB.team_game_opened
+      __DB.stat_last_playtime = __DB.team_game_countup
 
       local survived = nil
       local PDB = nil
-      for name in pairs(DB.stat_won_players) do
-        PDB = DB.players_data[name]
-        if game.players[name].connected then
-          if game.players[name].surface == surface and game.players[name].controller_type == defines.controllers.character then
+      for name in pairs(__DB.stat_won_players) do
+        PDB = __DB.players_data[name]
+        local player = game.get_player(name)
+        if player.connected then
+          if player.surface == surface and player.controller_type == defines.controllers.character then
             survived = 1
           else
             survived = 0
@@ -717,7 +726,7 @@ Game_var.update_team_stat = function(refresh_interval_tick)
         else
           survived = nil
         end
-        DB.stat_won_players[name] = {
+        __DB.stat_won_players[name] = {
           kills = PDB.tdm_kills,
           damage_dealt = PDB.tdm_damage_dealt,
           capture = PDB.tdm_capture,
@@ -729,10 +738,11 @@ Game_var.update_team_stat = function(refresh_interval_tick)
         PDB.tdm_capture = 0
         PDB.tdm_recover = 0
       end
-      for name in pairs(DB.stat_lost_players) do
-        PDB = DB.players_data[name]
-        if game.players[name].connected then
-          if game.players[name].surface == surface and game.players[name].controller_type == defines.controllers.character then
+      for name in pairs(__DB.stat_lost_players) do
+        PDB = __DB.players_data[name]
+        local player = game.get_player(name)
+        if player.connected then
+          if player.surface == surface and player.controller_type == defines.controllers.character then
             survived = 1
           else
             survived = 0
@@ -740,7 +750,7 @@ Game_var.update_team_stat = function(refresh_interval_tick)
         else
           survived = nil
         end
-        DB.stat_lost_players[name] = {
+        __DB.stat_lost_players[name] = {
           kills = PDB.tdm_kills,
           damage_dealt = PDB.tdm_damage_dealt,
           capture = PDB.tdm_capture,
@@ -753,17 +763,17 @@ Game_var.update_team_stat = function(refresh_interval_tick)
         PDB.tdm_recover = 0
       end
 
-      DB.order_damage_stat_won_players = Util.sort_key_table(DB.stat_won_players, 'damage_dealt')
-      DB.order_damage_stat_lost_players = Util.sort_key_table(DB.stat_lost_players, 'damage_dealt')
-      DB.order_capture_stat_won_players = Util.sort_key_table(DB.stat_won_players, 'capture')
-      DB.order_capture_stat_lost_players = Util.sort_key_table(DB.stat_lost_players, 'capture')
+      __DB.order_damage_stat_won_players   = Util.sort_key_table(__DB.stat_won_players,  'damage_dealt')
+      __DB.order_damage_stat_lost_players  = Util.sort_key_table(__DB.stat_lost_players, 'damage_dealt')
+      __DB.order_capture_stat_won_players  = Util.sort_key_table(__DB.stat_won_players,  'capture')
+      __DB.order_capture_stat_lost_players = Util.sort_key_table(__DB.stat_lost_players, 'capture')
 
       local tspec_ing_frame = {}
       local PDB2
       for _, player in pairs(game.connected_players) do
-        PDB2 = DB.players_data[player.name]
+        PDB2 = __DB.players_data[player.name]
         PDB2.guis.stat_view_btn.visible = true
-        if player.surface.name == DB.team_game_opened then
+        if player.surface.name == __DB.team_game_opened then
           tspec_ing_frame = PDB2.guis.tspec_ing_frame
           tspec_ing_frame.visible = true
           Util.opengui_last_team_stat(player)
@@ -776,12 +786,12 @@ end
 
 --관전하러가기 버튼을 누를 때
 Game_var.go_spectate_teamgame = function(player)
-  if not DB.team_game_opened then return end
+  if not __DB.team_game_opened then return end
   local playername = player.name
-  local PDB = DB.players_data[playername]
+  local PDB = __DB.players_data[playername]
   local force = Util.get_player_team_force(playername)
-  if player.surface.name == DB.team_game_opened then return end
-  local surface = game.surfaces[DB.team_game_opened]
+  if player.surface.name == __DB.team_game_opened then return end
+  local surface = game.surfaces[__DB.team_game_opened]
 
   if force == 'player' then
     PDB.player_mode = Const.defines.player_mode.whole_team_spectator
@@ -811,11 +821,11 @@ end
 Game_var.go_return_ffagame = function(player)
   if player.surface.index == 1 then return end
   local playername = player.name
-  local PDB = DB.players_data[playername]
+  local PDB = __DB.players_data[playername]
   local force = nil
 
   if player.vehicle then
-    if DB.team_game_end_tick then
+    if __DB.team_game_end_tick then
       Util.save_quick_bar(player, player.vehicle.name)
       player.vehicle.set_driver(nil)
     else
@@ -839,7 +849,7 @@ Game_var.go_return_ffagame = function(player)
   PDB.guis.tdm_frame.visible = false
   PDB.guis.ffa_frame.visible = true
   PDB.guis.tspec_ing_frame.visible = false
-  if DB.team_game_opened then
+  if __DB.team_game_opened then
     PDB.guis.tspec_frame.visible = true
   else
     PDB.guis.tspec_frame.visible = false
@@ -852,8 +862,8 @@ Game_var.redraw_sizing_field = function(np)
   local surface = game.surfaces[1]
   local n_vertex, vertexes = 0, {}
   local radius = Util.np2radius(np)
-  DB.field_radius = radius
-  if not DB.surface1_initialized then return end
+  __DB.field_radius = radius
+  if not __DB.surface1_initialized then return end
   local last = surface.find_entities_filtered{name = 'electric-beam-no-sound', force = 'neutral'}
   for _, beam in pairs(last) do beam.destroy() end
   n_vertex = math.ceil((2 * math.pi * radius) / 10)
@@ -887,17 +897,17 @@ end
 --전기장 밖에서 데미지 입게 하기
 Game_var.damage_out_of_field = function(refresh_interval_tick)
   local np = #game.connected_players
-  if DB.last_connected_players ~= np then
-    DB.last_connected_players = np
+  if __DB.last_connected_players ~= np then
+    __DB.last_connected_players = np
     Game_var.redraw_sizing_field(np)
   end
   local surface = game.surfaces[1]
   local vehicles = surface.find_entities_filtered{type = {'car', 'spider-vehicle', 'locomotive', 'artillery-wagon', 'cargo-wagon', 'fluid-wagon'}}
   for _, vehicle in pairs(vehicles) do
     if vehicle.force.index > 5 then
-      if math.sqrt(vehicle.position.x^2 + vehicle.position.y^2) > DB.field_radius then
+      if math.sqrt(vehicle.position.x^2 + vehicle.position.y^2) > __DB.field_radius then
         if vehicle.destructible then
-          vehicle.health = vehicle.health - vehicle.prototype.max_health*0.02
+          vehicle.health = vehicle.health - vehicle.max_health * 0.02
           if vehicle.health <= 0 then vehicle.die() end
         end
         --vehicle.damage(10, 'neutral', 'poison')
@@ -908,13 +918,13 @@ end
 
 --DB에서 플레이어 삭제하기
 Game_var.remove_player_from_DB = function(playername)
-  DB.team_game_players[1][playername] = nil
-  DB.team_game_players[2][playername] = nil
-  DB.players_data[playername] = nil
-  for k, name in pairs(DB.players_index) do
+  __DB.team_game_players[1][playername] = nil
+  __DB.team_game_players[2][playername] = nil
+  __DB.players_data[playername] = nil
+  for k, name in pairs(__DB.players_index) do
     if name == playername then
       Tank_spawn.remove_vehicle_in_vault{index = k}
-      DB.players_index[k] = nil
+      __DB.players_index[k] = nil
       break
     end
   end
@@ -956,9 +966,9 @@ end
 --on_nth_tick 이벤트용
 Game_var.on_18000_tick = function()
   Game_var.remove_old_offline_player()
-  if DB.last_ffa_reset + math.floor(Const.ffa_reset_interval*216000) < game.tick then
-    if DB.loading_chunks.is_loading or DB.team_game_opening or DB.team_game_opened or DB.team_game_end_tick or not DB.surface1_initialized then
-      DB.reset_ffa_at_next_break = true
+  if __DB.last_ffa_reset + math.floor(Const.ffa_reset_interval*216000) < game.tick then
+    if __DB.loading_chunks.is_loading or __DB.team_game_opening or __DB.team_game_opened or __DB.team_game_end_tick or not __DB.surface1_initialized then
+      __DB.reset_ffa_at_next_break = true
     else
       Game_var.store_online_vehicles_before_resetffa()
       Terrain.resetffa()
@@ -970,9 +980,7 @@ Game_var.on_10_tick = function()
   Game_var.update_team_stat(10)
 end
 
-Game_var.on_32_tick = function()
-  Game_var.update_tqueue_count()
-end
+Game_var.on_32_tick = Game_var.update_tqueue_count
 
 Game_var.on_60_tick = function()
   Game_var.damage_out_of_field(60)

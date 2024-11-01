@@ -40,7 +40,7 @@ Block_recipes.disable_tech_of_force = function(f)
   force.recipes['car'].enabled = true
   force.recipes['tank'].enabled = true
   force.recipes['spidertron'].enabled = true
-  force.recipes['spidertron-remote'].enabled = true
+  -- force.recipes['rts-tool'].enabled = true -- TODO: recheck
   force.recipes['construction-robot'].enabled = true
   force.recipes['repair-pack'].enabled = true
   --force.recipes['solid-fuel-from-petroleum-gas'].enabled = true
@@ -66,7 +66,7 @@ Block_recipes.disable_tech_of_force = function(f)
   force.recipes['defender-capsule'].enabled = true
   force.recipes['distractor-capsule'].enabled = true
   force.recipes['destroyer-capsule'].enabled = true
-  force.recipes['discharge-defense-remote'].enabled = true
+  -- force.recipes['discharge-defense-remote'].enabled = true --TODO: recheck
 
   --force.enable_all_recipes() --테스트 용
   --force.enable_all_technologies() --테스트 용

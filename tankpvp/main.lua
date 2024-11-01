@@ -16,7 +16,7 @@ local Const = require('tankpvp.const')
 local Commands = require('tankpvp.commands') --DB
 local Util = require('tankpvp.util')
 
-local DB = nil
+local __DB = nil
 
 --각 모듈의 on_load는 local DB 등록을 위한 것.
 --순환참조하지 않도록 함수 배치에 주의.
@@ -27,7 +27,7 @@ Main.on_load = function()
     Event_filter(filter[1], filter[2])
   end
   Game_var.on_load()
-  DB = global.tankpvp_
+  __DB = storage.tankpvp_
   Terrain.on_load()
   Tank_spawn.on_load()
   Tank_loots.on_load()
@@ -35,11 +35,11 @@ Main.on_load = function()
   Gui.on_load()
   Commands.on_load()
   --초기화. 게임 시작 시, 1회만 실행.
-  if not DB.initialized then
+  if not __DB.initialized then
     Terrain.init()
     Prevent_action.permissions_init()
     Balance.init()
-    DB.initialized = true
+    __DB.initialized = true
   end
 end
 
@@ -62,7 +62,7 @@ local on_nth_tick__f1_chart = function()
 end
 
 local on_tick = function()
-  local LCDB = DB.loading_chunks
+  local LCDB = __DB.loading_chunks
   Game_var.on_tick()
   if LCDB.is_loading then
     local t, f = 0, 0
@@ -89,19 +89,19 @@ local on_tick = function()
         local p = nil
         local force, spawn = nil, nil
         LCDB.is_loading = false
-        DB.team_game_opening = false
+        __DB.team_game_opening = false
 
         --이 구문은 Game_var의 새 카운터를 시작시킨다.
-        DB.team_game_standby_time = Const.team_game_standby_time
+        __DB.team_game_standby_time = Const.team_game_standby_time
 
-        DB.team_game_opened = LCDB.surface_name
-        surface = game.surfaces[DB.team_game_opened]
+        __DB.team_game_opened = LCDB.surface_name
+        surface = game.surfaces[__DB.team_game_opened]
         local cliffs = surface.find_entities_filtered{type = 'cliff'}
         for _, cliff in pairs(cliffs) do cliff.destroy() end
         for _, player in pairs(game.connected_players) do
           playername = player.name
-          if DB.players_data[playername].queueing_for_team_game then
-            DB.players_data[playername].player_mode = Const.defines.player_mode.team
+          if __DB.players_data[playername].queueing_for_team_game then
+            __DB.players_data[playername].player_mode = Const.defines.player_mode.team
             Tank_spawn.despawn(player)
             Game_var.player_return_ffa_slot(playername)
             player.teleport({0,0}, surface)
@@ -110,9 +110,9 @@ local on_tick = function()
         end
         if #players == 0 then
           game.delete_surface(surface)
-          DB.team_game_standby_time = nil
-          DB.team_game_opened = nil
-          if DB.reset_ffa_at_next_break then
+          __DB.team_game_standby_time = nil
+          __DB.team_game_opened = nil
+          if __DB.reset_ffa_at_next_break then
             Game_var.store_online_vehicles_before_resetffa()
             Terrain.resetffa()
           end
@@ -148,7 +148,7 @@ local on_tick = function()
         local height = surface.map_gen_settings.height
         local area = {{-width/2-1,-height/2-1},{width/2+1,height/2+1}}
         local no_move = game.permissions.get_group('fc_standby')
-        DB.team_game_players = {[1]={},[2]={}}
+        __DB.team_game_players = {[1]={},[2]={}}
         for i = 1, 2 do
           local player = nil
           local playername = nil
@@ -157,8 +157,8 @@ local on_tick = function()
           --spawn = game.forces[force].get_spawn_position(surface)
           for ii = 1, #teams[i] do
             playername = teams[i][ii]
-            PDB = DB.players_data[playername]
-            player = game.players[playername]
+            PDB = __DB.players_data[playername]
+            player = game.get_player(playername)
             player.force = force
             player.tag = '[[color='..Util.color2str(Const.team_defines_key[force].color)..']'..force..'[/color]]'
             player.print{"inform-team-chat-mode"}
@@ -176,7 +176,7 @@ local on_tick = function()
             PDB.tdm_capture = 0
             PDB.tdm_recover = 0
             player.color = Const.team_defines[i].color
-            DB.team_game_players[i][playername] = true
+            __DB.team_game_players[i][playername] = true
             Tank_spawn.spawn(player, 'tank')
             player.character.allow_dispatching_robots = false
             no_move.add_player(player) --이제 standby시간임. 시간동안 못움직이게 함.
@@ -184,19 +184,19 @@ local on_tick = function()
           game.forces[force].chart(surface, area)
         end
         game.forces[1].chart(surface, area)
-        DB.team_game_capture_progress = {[1]=0,[2]=0}
+        __DB.team_game_capture_progress = {[1]=0,[2]=0}
         Game_var.update_team_stat(1)
 
         --라운드 시간 계산
         local t1cnt, t2cnt = Tank_spawn.count_team_tanks()
         local roundtime = Const.team_roundtime_min + Const.team_roundtime_per*(t1cnt + t2cnt)
         if roundtime > Const.team_roundtime_max then roundtime = Const.team_roundtime_max end
-        DB.team_game_remain_time = roundtime
-        DB.team_game_remained_tanks[1] = t1cnt
-        DB.team_game_remained_tanks[2] = t2cnt
-        DB.team_game_capture_plus = {[1]=0,[2]=0}
-        DB.team_game_capture_minus = {[1]=0,[2]=0}
-        DB.team_game_capture_progress = {[1]=0,[2]=0}
+        __DB.team_game_remain_time = roundtime
+        __DB.team_game_remained_tanks[1] = t1cnt
+        __DB.team_game_remained_tanks[2] = t2cnt
+        __DB.team_game_capture_plus = {[1]=0,[2]=0}
+        __DB.team_game_capture_minus = {[1]=0,[2]=0}
+        __DB.team_game_capture_progress = {[1]=0,[2]=0}
 
         Gui.update_team_stat()
 
@@ -220,19 +220,19 @@ local on_tick = function()
       end
       if percent >= 1 then
         LCDB.is_loading = false
-        DB.last_ffa_reset = game.tick
-        DB.reset_ffa_at_next_break = false
+        __DB.last_ffa_reset = game.tick
+        __DB.reset_ffa_at_next_break = false
         do
           local cliffs = surface.find_entities_filtered{type = 'cliff'}
           for _, cliff in pairs(cliffs) do cliff.destroy() end
-          DB.surface1_initialized = true
+          __DB.surface1_initialized = true
           Game_var.redraw_sizing_field()
           local mode = nil
           local playername = nil
           local player_index = nil
           for _, player in pairs(game.connected_players) do
             playername = player.name
-            mode = DB.players_data[playername].player_mode
+            mode = __DB.players_data[playername].player_mode
             if mode == Const.defines.player_mode.normal then
               Game_var.player_return_ffa_slot(playername)
               if player.controller_type ~= defines.controllers.editor then
@@ -262,13 +262,13 @@ end
 
 --플레이어 입장 시
 local on_player_joined_game = function(event)
-  local player = game.players[event.player_index]
+  local player = game.get_player(event.player_index)
   local playername = player.name
-  local PDB = DB.players_data[playername]
+  local PDB = __DB.players_data[playername]
   local mode = PDB.player_mode
   player.clear_console()
   Prevent_action.disable_some_game_view_settings(player)
-  DB.zoom_world_queue[playername] = nil
+  __DB.zoom_world_queue[playername] = nil
   player.spectator = false
   if mode == Const.defines.player_mode.team and player.surface.index > 1 and player.surface.name ~= 'vault' then
     local force = Util.get_player_team_force(playername)
@@ -307,13 +307,13 @@ local on_player_joined_game = function(event)
     player.print{"inform-all-chat-mode"}
     Game_var.player_start_to_wait_ffa(playername)
     PDB.last_tick_start_queue_for_ffa = game.tick
-    if DB.surface1_initialized then
+    if __DB.surface1_initialized then
       Game_var.player_spawn_in_ffa(playername)
     end
     player.color = Util.get_personal_color(player)
   end
   Gui.on_player_joined_game(event)
-  if DB.stat_last_map_name then
+  if __DB.stat_last_map_name then
     PDB.guis.stat_view_btn.visible = true
   else
     PDB.guis.stat_view_btn.visible = false
@@ -322,19 +322,18 @@ end
 
 --부활한 경우
 local on_player_respawned = function(event)
-  local player = game.players[event.player_index]
+  local player = game.get_player(event.player_index)
+  if not (player and player.valid) then return end
   local playername = player.name
   --mode는 부활 전에 어딘가에서 설정됨. 예) 죽었을 경우 등
-  local mode = DB.players_data[playername].player_mode
+  local mode = __DB.players_data[playername].player_mode
   if mode == Const.defines.player_mode.normal then
     Tank_spawn.spawn(player, 'tank') --리스폰은 player_spawn_in_ffa을 사용안함
-    player.surface.create_entity{
-      name = 'flying-text',
+    player.create_local_flying_text({
       position = player.position,
-      text = '[font=default-game]TANK IS READY[img=item/tank][/font]',
+      text  = '[font=default-game]TANK IS READY[img=item/tank][/font]',
       color = {1, 1, 0, 1},
-      render_player_index = event.player_index
-    }
+    })
     player.play_sound{path = 'utility/new_objective', volume_modifier = 1}
     --for _, other in pairs(game.connected_players) do
     --  if other.surface.index == 1 then
@@ -361,11 +360,12 @@ end
 
 --사망한 경우
 local on_player_died = function(event)
-  local player = game.players[event.player_index]
+  local player = game.get_player(event.player_index)
+  if not (player and player.valid) then return end 
   local corpses = player.surface.find_entities_filtered{position = player.position, radius = 0.1,name = 'character-corpse'}
   Tank_loots.on_post_entity_died{corpses = corpses} --이벤트에 등록해서 쓰다가 버그가 있어서 빼고 그냥 여기다 씀
   local playername = player.name
-  local PDB = DB.players_data[playername]
+  local PDB = __DB.players_data[playername]
   mode = PDB.player_mode
   --FFA에서 사망
   if mode == Const.defines.player_mode.normal then
@@ -430,7 +430,8 @@ end
 
 -- 운영자가 /editor 커맨드를 사용한 경우
 local on_pre_player_toggled_map_editor = function(event)
-  local player = game.players[event.player_index]
+  local player = game.get_player(event.player_index)
+  if not (player and player.valid) then return end
   local playername = player.name
   if player.controller_type ~= defines.controllers.editor then
     player.spectator = false
@@ -447,9 +448,9 @@ local on_pre_player_toggled_map_editor = function(event)
     player.force = 'player'
     Game_var.player_left(playername)
     game.permissions.get_group(0).add_player(playername)
-    local mode = DB.players_data[playername].player_mode
+    local mode = __DB.players_data[playername].player_mode
     if mode == Const.defines.player_mode.normal then
-      if not DB.loading_chunks.is_loading then
+      if not __DB.loading_chunks.is_loading then
         local new_player_name = Game_var.pick_highest_prio_waiting_ffa()
         if new_player_name then
           Game_var.player_spawn_in_ffa(new_player_name)
@@ -460,7 +461,8 @@ local on_pre_player_toggled_map_editor = function(event)
 end
 
 local on_player_toggled_map_editor = function(event)
-  local player = game.players[event.player_index]
+  local player = game.get_player(event.player_index)
+  if not (player and player.valid) then return end
   local playername = player.name
   if player.controller_type ~= defines.controllers.editor then
     if player.surface.index == 1 then
@@ -468,7 +470,7 @@ local on_player_toggled_map_editor = function(event)
     elseif player.surface.name == 'vault' then
     else
       player.color = Util.get_personal_color(player)
-      DB.players_data[playername].player_mode = Const.defines.player_mode.whole_team_spectator
+      __DB.players_data[playername].player_mode = Const.defines.player_mode.whole_team_spectator
       Game_var.remove_character(playername)
       Game_var.remember_position_to_mapview(playername)
       Game_var.move_to_outofring(playername)
@@ -478,7 +480,7 @@ end
 
 -- 플레이어를 삭제한 경우. (/admin 등을 이용해서)
 local on_player_removed = function(event)
-  local playername = DB.players_index[event.player_index]
+  local playername = __DB.players_index[event.player_index]
   Game_var.remove_player_from_ffa_queue(playername)
   Game_var.remove_player_from_DB(playername)
   log('\n'..string.format("%.3f",game.tick/60)..' [MANUAL-PLAYER-REMOVE] = '..playername)
@@ -486,16 +488,17 @@ end
 
 -- 플레이어가 나간 경우
 local on_pre_player_left_game = function(event)
-  local player = game.players[event.player_index]
+  local player = game.get_player(event.player_index)
+  if not (player and player.valid) then return end
   local playername = player.name
-  local mode = DB.players_data[playername].player_mode
+  local mode = __DB.players_data[playername].player_mode
   Game_var.player_left(playername)
   if mode == Const.defines.player_mode.team_spectator or mode == Const.defines.player_mode.team then
     --nothing
   elseif mode == Const.defines.player_mode.normal then
     player.force = 'player'
     Tank_spawn.despawn(player)
-    if not DB.loading_chunks.is_loading then
+    if not __DB.loading_chunks.is_loading then
       local new_player_name = Game_var.pick_highest_prio_waiting_ffa()
       if new_player_name then
         Game_var.player_spawn_in_ffa(new_player_name)
@@ -610,7 +613,7 @@ Main.events =
 {
   [defines.events.on_tick] = on_tick,
   [defines.events.on_player_created] = on_player_created,
-  [defines.events.on_player_died] = on_player_died,
+  [defines.events.on_player_died]    = on_player_died,
   [defines.events.on_player_joined_game] = on_player_joined_game,
   [defines.events.on_player_respawned] = on_player_respawned,
 
@@ -639,7 +642,7 @@ Main.events =
   [defines.events.on_built_entity] = on_built_entity,
   [defines.events.on_entity_damaged] = on_entity_damaged,
   [defines.events.on_gui_checked_state_changed] = on_gui_checked_state_changed,
-  [defines.events.on_gui_click] = on_gui_click,
+  [defines.events.on_gui_click]  = on_gui_click,
   [defines.events.on_gui_closed] = on_gui_closed,
 }
 

@@ -4,27 +4,34 @@ Tank_loots.event_filters = {}
 local Const = require('tankpvp.const')
 local Util = require('tankpvp.util')
 
-local DB = nil
+local __DB = nil
 
 Tank_loots.on_load = function()
-  DB = global.tankpvp_
+  __DB = storage.tankpvp_
 end
 
+
+local __stack = {name = "", count = 1}
+local __spill_item_stack_param = {
+    position = nil, stack = __stack,
+    enable_looted = true, allow_belts = false,
+    force = "neutral"
+}
 local vehicle_types = {
   ['car'] = true,
   ['locomotive'] = true,
   ['spider-vehicle'] = true,
 }
 Tank_loots.on_entity_died = function(event)
-  if not event.entity.valid then return end
-  if not vehicle_types[event.entity.type] then return end
   local vehicle = event.entity
+  if not vehicle.valid then return end
+  if not vehicle_types[vehicle.type] then return end
   if event.force.name == 'player' then return end
   if vehicle.get_driver() then
     local character = vehicle.get_driver()
     if character.player then
       local player = character.player
-      local PDB = DB.players_data[player.name]
+      local PDB = __DB.players_data[player.name]
       Util.save_quick_bar(player, vehicle.name)
       if event.cause then
         if vehicle_types[event.cause.type] or event.cause.last_user then
@@ -57,7 +64,7 @@ Tank_loots.on_entity_died = function(event)
               character.die(event.cause.force, event.cause)
             end
             if killer.valid then
-              local KDB = DB.players_data[killer.name]
+              local KDB = __DB.players_data[killer.name]
               if killer == player then
                 if vehicle.surface.index == 1 then
                   PDB.ffa_deaths = PDB.ffa_deaths + 1
@@ -95,15 +102,13 @@ Tank_loots.on_entity_died = function(event)
         end
       end
       local loots = vehicle.get_inventory(defines.inventory.car_ammo).get_contents()
-      for item, count in pairs(loots) do
+      for _, item_data in pairs(loots) do
+        local count = item_data.count
         if count > 10 then count = 10 end
-        vehicle.surface.spill_item_stack(
-          vehicle.position,
-          {name = item, count = math.random(1, count)},
-          true,
-          'neutral',
-          false
-        )
+        __spill_item_stack_param.position = vehicle.position
+        __stack.count = math.random(1, count)
+        __stack.name  = item_data.name
+        vehicle.surface.spill_item_stack(__spill_item_stack_param)
       end
     end
   end
@@ -112,7 +117,7 @@ end
 local loot_blacklist = {
   ['power-armor-mk2'] = true,
   ['artillery-targeting-remote'] = true,
-  ['spidertron-remote'] = true,
+  ['rts-tool'] = true,
 }
 --이벤트에 등록해서 쓰다가 버그가 있어서 결국 빼고 on_player_died에 섞어서 씀.
 Tank_loots.on_post_entity_died = function(event)
@@ -123,16 +128,15 @@ Tank_loots.on_post_entity_died = function(event)
         local inv = corpse.get_inventory(defines.inventory.character_corpse)
         if #inv > 0 then
           local loots = inv.get_contents()
-          for item, count in pairs(loots) do
+          for _, item_data in pairs(loots) do
+            local count = item_data.count
             if count > Const.loot_limit then count = Const.loot_limit end
-            if not loot_blacklist[item] then
-              corpse.surface.spill_item_stack(
-                corpse.position,
-                {name = item, count = math.random(1, count)},
-                true,
-                'neutral',
-                false
-              )
+            local item_name = item_data.name
+            if not loot_blacklist[item_name] then
+              __spill_item_stack_param.position = corpse.position
+              __stack.count = math.random(1, count)
+              __stack.name  = item_name
+              corpse.surface.spill_item_stack(__spill_item_stack_param)
             end
           end
           --[[ --초기버전 테스트 용 - 미사용 - 죽은 자리에 빈 시체 남기기

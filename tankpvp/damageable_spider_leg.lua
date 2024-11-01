@@ -15,15 +15,15 @@ local damageable_spider_leg = {}
 
 -- damageable-spider-leg lua module
 
-local debugging = false
-local damage_modifier = 1/4
+local DEBUGGING = false
+local DAMAGE_MODIFIER = 1/4
 
 local register_spider = function(entity)
   if not entity then return end
   if not entity.valid then return end
   if entity.type ~= 'spider-vehicle' then return end
-  if not global.damageable_spider_leg then
-    global.damageable_spider_leg = {}
+  if not storage.damageable_spider_leg then
+    storage.damageable_spider_leg = {}
   end
   local data = {}
   local spider = entity
@@ -39,9 +39,9 @@ local register_spider = function(entity)
       data[#data + 1] = leg
     end
   end
-  global.damageable_spider_leg[tostring(spider.unit_number)] = data
-  script.register_on_entity_destroyed(spider)
-  if debugging then
+  storage.damageable_spider_leg[tostring(spider.unit_number)] = data
+  script.register_on_object_destroyed(spider)
+  if DEBUGGING then
     game.print{"",'legs=',#data,' ',spider.name,spider.unit_number}
   end
 end
@@ -63,15 +63,15 @@ local on_entity_damaged = function(event)
   local unit_number = nil
   for _, torso in pairs(torsos) do
     unit_number = tostring(torso.unit_number)
-    if global.damageable_spider_leg[unit_number] then
-      for _, entity in pairs(global.damageable_spider_leg[unit_number]) do
+    if storage.damageable_spider_leg[unit_number] then
+      for _, entity in pairs(storage.damageable_spider_leg[unit_number]) do
         if entity == leg then
           leg.health = leg.prototype.max_health
-          local damage = event.original_damage_amount * damage_modifier
+          local damage = event.original_damage_amount * DAMAGE_MODIFIER
           --저항 감산수치가 있으면 modify한 다음에 다시 데미지에 추가한다.
           if torso.prototype.resistances then
             if torso.prototype.resistances[event.damage_type.name] then
-              damage = damage + torso.prototype.resistances[event.damage_type.name].decrease * (1 - damage_modifier)
+              damage = damage + torso.prototype.resistances[event.damage_type.name].decrease * (1 - DAMAGE_MODIFIER)
               if damage > event.original_damage_amount then
                 damage = event.original_damage_amount
               end
@@ -98,21 +98,21 @@ local on_entity_damaged = function(event)
   end
 end
 
-local on_entity_destroyed = function(event)
-  if debugging then
+local on_object_destroyed = function(event)
+  if DEBUGGING then
     local check = nil
-    if global.damageable_spider_leg[tostring(event.unit_number)] then check = event.unit_number end
+    if storage.damageable_spider_leg[tostring(event.unit_number)] then check = event.unit_number end
     game.print{"",'removed ',check}
   end
-  global.damageable_spider_leg[tostring(event.unit_number)] = nil
+  storage.damageable_spider_leg[tostring(event.unit_number)] = nil
 end
 
 local on_robot_built_entity = function(event)
-  register_spider(event.created_entity)
+  register_spider(event.entity)
 end
 
 local on_built_entity = function(event)
-  register_spider(event.created_entity)
+  register_spider(event.entity)
 end
 
 local on_entity_cloned = function(event)
@@ -121,15 +121,15 @@ end
 
 damageable_spider_leg.events = { --core\lualib\event_handler.lua를 위한 포맷
   [defines.events.on_entity_damaged] = on_entity_damaged,
-  [defines.events.on_entity_destroyed] = on_entity_destroyed,
+  [defines.events.on_object_destroyed] = on_object_destroyed,
   [defines.events.on_robot_built_entity] = on_robot_built_entity,
   [defines.events.on_built_entity] = on_built_entity,
   [defines.events.on_entity_cloned] = on_entity_cloned,
 }
 
 damageable_spider_leg.on_load = function()
-  if global.damageable_spider_leg then
-    for _, data in pairs(global.damageable_spider_leg) do
+  if storage.damageable_spider_leg then
+    for _, data in pairs(storage.damageable_spider_leg) do
       for _, entity in pairs(data) do
         entity.destructible = true
       end

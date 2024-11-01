@@ -3,8 +3,9 @@ local Chat = {}
 Chat.on_console_chat = function(event)
 	if not event.message then return end
 	if not event.player_index then return end
-  local player = game.players[event.player_index]
+  local player = game.get_player(event.player_index)
   if not player then return end
+
   local force = player.force
   local color = player.chat_color
   local tag = player.tag

@@ -7,7 +7,7 @@ local Util = require('tankpvp.util')
 local DB = nil
 
 Gui.on_load = function()
-  DB = global.tankpvp_
+  DB = storage.tankpvp_
   Game_var.on_load()
 end
 
@@ -133,7 +133,7 @@ local ffa_gui = function(player)
     drag.style.right_margin = 8
     drag.style.horizontally_stretchable = true
     drag.style.vertically_stretchable = true
-    local closebtn = tdmstat_frame.header.add{type = 'sprite-button', name = 'closebtn', sprite = 'utility/close_white', style = 'frame_action_button', mouse_button_filter = {'left'}}
+    local closebtn = tdmstat_frame.header.add{type = 'sprite-button', name = 'closebtn', sprite = 'utility/close', style = 'frame_action_button', mouse_button_filter = {'left'}}
     local innerframe = tdmstat_frame.add{type = 'frame', direction = 'vertical', style = 'inside_deep_frame'}
     tdmstat_frame.visible = false
     PDB.guis.tdmstat_inner = innerframe
@@ -173,7 +173,7 @@ Gui.update_lead_content = function()
   table.sort(list, lead_sorter)
   for i = 1, 3 do --3위까지 누구에게나 표시
     if list[i] then
-      color = game.players[list[i].name].color
+      color = game.get_player(list[i].name).color
       color = '[color='..tostring(color.r)..','..tostring(color.g)..','..tostring(color.b)..']'
       caption = caption..'   '..tostring(i)..'. '..color..list[i].name..'[/color] ('..list[i].kills..'/'..list[i].deaths..')'
       leaders[list[i].name] = true
@@ -221,7 +221,7 @@ end
 Gui.on_gui_checked_state_changed = function(event)
   if not event.element then return end
   if not event.element.valid then return end
-  local player = game.players[event.player_index]
+  local player = game.get_player(event.player_index)
   local PDB = DB.players_data[player.name]
 
   if event.element == PDB.guis.ffa_frame.tready then
@@ -233,7 +233,7 @@ end
 Gui.on_gui_click = function(event)
   if not event.element then return end
   if not event.element.valid then return end
-  local player = game.players[event.player_index]
+  local player = game.get_player(event.player_index)
   local PDB = DB.players_data[player.name]
   if not PDB then return end
   if not PDB.guis.tspec_frame then return end
@@ -267,9 +267,10 @@ Gui.loading_nauvis_chunks = function(player, percent)
     name = 'loading_frame',
     caption = {"progress-bar", 'FreeForAll'},
   }
-  local bar = loading_frame.add{type = 'progressbar', value = percent, style = 'research_progressbar'}
+  local bar = loading_frame.add{type = 'progressbar', value = percent}
   bar.style.horizontally_stretchable = true
   bar.style.color = {1, 0.25, 0}
+  bar.style.bar_width = 24
   if percent >= 1 then
     loading_frame.destroy()
   end
@@ -294,8 +295,9 @@ Gui.loading_team_chunks = function(player, percent, surface_name)
     type = 'label',
     caption = {"progress-bar-team", surface_name},
   }
-  local bar = top_flow.loadingbar_flow.add{type = 'progressbar', value = percent,  style = 'research_progressbar'}
+  local bar = top_flow.loadingbar_flow.add{type = 'progressbar', value = percent}
   bar.style.color = {1, 0.25, 1}
+  bar.style.bar_width = 24
   if percent >= 1 then
     flow.destroy()
   end
@@ -303,12 +305,12 @@ end
 
 -- 최초 접속시 GUI 생성
 Gui.on_player_created = function(event)
-  ffa_gui(game.players[event.player_index])
+  ffa_gui(game.get_player(event.player_index))
 end
 
 -- 플레이어가 재접속 했을 때 그동안 업데이트 되지 못한 GUI를 업데이트
 Gui.on_player_joined_game = function(event)
-  local player = game.players[event.player_index]
+  local player = game.get_player(event.player_index)
   local PDB = DB.players_data[player.name]
   local loading_frame = player.gui.center.loading_frame
   if loading_frame and loading_frame.valid then
