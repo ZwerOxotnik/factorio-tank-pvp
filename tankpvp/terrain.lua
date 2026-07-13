@@ -312,7 +312,7 @@ Terrain.on_chunk_generated = function(event)
             force = 'player'
           }
           entity.destructible = false
-          entity.minable = false -- 퍼미션에 방지되서 굳이 없어도 됨
+          entity.minable_flag = false -- 퍼미션에 방지되서 굳이 없어도 됨
         end
       end
     end
@@ -328,7 +328,7 @@ Terrain.on_chunk_generated = function(event)
         force = 'player'
       }
       wall.destructible = false
-      wall.minable = false
+      wall.minable_flag = false
     end
   end
 end
